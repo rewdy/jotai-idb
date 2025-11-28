@@ -50,14 +50,14 @@ export class JotaiIDB<T extends RecordType> {
     atom(async () => {
       if (!this.db) throw new Error("JotaiIDB not initialized");
       return getById<T>(this.db, this.storeName, id);
-    })
+    }),
   );
 
   private rangeAtomFamilyFn = atomFamily((query: RangeQuery) =>
     atom(async () => {
       if (!this.db) throw new Error("JotaiIDB not initialized");
       return getAllByRange<T>(this.db, this.storeName, query);
-    })
+    }),
   );
 
   // Setter atom for write operations

@@ -12,7 +12,7 @@ You are an expert in JavaScript, TypeScript, Rspack, Rsbuild, Rslib, and library
 - **Range queries** for efficient data retrieval using index bounds
 - **Reactive atoms** for reading all items, keys, entries, individual records, and range results
 - **Write-through atoms** for put and delete operations with automatic cache invalidation
-- **Zero external dependencies** except Jotai
+- **Minimal external dependencies** - Only Jotai (which requires React)
 
 ### Architecture
 
@@ -153,3 +153,79 @@ const setSetter = useSetAtom(db.setter); // (action: SetterAction<T>) => Promise
 - **Selective Subscriptions** - Components only re-render when their specific atoms change, not all database changes
 - **Efficient Queries** - Use indexes and range queries to retrieve only necessary data from IndexedDB
 - **Lazy Initialization** - Database opens lazily on first `.init()` call; no overhead until needed
+
+## Code Standards
+
+- **TypeScript Strict Mode** - All code must pass `tsconfig.json` strict mode
+- **Promise-based Async** - All IndexedDB operations must use Promises; never use callbacks
+- **Non-blocking Atoms** - Atoms should never block React rendering (use Suspense for async atoms)
+- **Zero External Dependencies** - Library should only depend on Jotai (which requires React)
+- **Strong Type Inference** - Leverage TypeScript generics for full type safety through the API
+- **Modular Files** - Keep files focused on single concerns
+- **Named Exports Only** - No default exports in library code
+- **Jotai Idioms** - Follow Jotai's patterns for atom composition and usage
+
+## Implementation Details
+
+### Initialization Pattern
+
+The JotaiIDB class requires explicit initialization:
+
+```typescript
+const db = await new JotaiIDB<T>(config).init();
+```
+
+This pattern allows configuration validation before database opening, opens IndexedDB lazily (no overhead until needed), returns the same instance with atoms ready for use, and throws if database opening fails.
+
+### Cache Invalidation via Force-Update Atoms
+
+The library uses "force-update atoms" for cache invalidation after write operations:
+
+The mechanism works by:
+
+- **Force-update atoms** are internal atoms that store incrementing numbers
+- **Main read atoms** (`items`, `keys`, `entries`) depend on force-update atoms via `get(forceUpdateX)`
+- **When setter executes** put/delete, it increments the relevant force-update atoms
+- **This causes dependent atoms** to re-read from IndexedDB on next access
+- **Parameterized atoms** (`item(id)`, `range(query)`) don't depend on force-update because they read directly from IndexedDB each time, and `atomFamily` caching ensures same params return same atom instance
+
+This approach ensures automatic cache invalidation after writes, no need for manual cache clearing, minimal re-renders (only affected components update), and simple, predictable behavior.
+
+### Testing Strategy
+
+Tests use `fake-indexeddb` to simulate IndexedDB in Node.js without requiring React.
+
+The testing approach:
+
+- Import `fake-indexeddb/auto` to patch global `indexedDB`
+- Use `getDefaultStore()` from Jotai to access atoms directly
+- Call `await atom.read(store.get)` to read async atom values
+- Call `store.set(atom, value)` to set atom values
+
+Benefits include avoiding React dependency in core testing, testing pure atom behavior and database operations, verifying cache invalidation patterns, and running in Node.js test environment.
+
+Test files are organized by concern:
+
+- `setup.ts` - Shared utilities and test database factory
+- `initialization.test.ts` - Database setup and error handling
+- `read.test.ts` - Reading operations
+- `write.test.ts` - Write operations
+- `caching.test.ts` - atomFamily caching behavior
+- `items.test.ts` - Items, keys, entries atoms
+- `range.test.ts` - Range query functionality
+- `invalidation.test.ts` - Cache invalidation after writes
+- `types.test.ts` - Type safety verification
+
+### Database Structure
+
+The library is organized into focused modules:
+
+- **Core class** (`/src/core/JotaiIDB.ts`) - Manages atoms, configuration, and database lifecycle
+- **Type definitions** (`/src/types/index.ts`) - All public interfaces (RecordType, RangeQuery, SetterAction, etc.)
+- **Database operations** (`/src/db/`)
+  - `openDB.ts` - Opens/creates IndexedDB with version upgrades
+  - `queries.ts` - Read operations (getAll, getById, getAllKeys, getAllByRange)
+  - `writes.ts` - Write operations (putRecord, deleteRecord)
+- **Public exports** (`/src/index.ts`) - Exports JotaiIDB class and all types
+
+Key invariant: Atoms are created inline in JotaiIDB constructor; no factory functions.
