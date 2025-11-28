@@ -49,6 +49,10 @@ The library is structured around:
 - [Rspack](https://rspack.rs/llms.txt) - A fast Rust-based bundler for the web
 - [IndexedDB](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API) - Low-level API for client-side storage
 
+## Code updates
+
+Since we use biome for formatting, run `bun format` after a group of changes have been made. This will be faster than manually trying to fix formatting issues and will be more reliable.
+
 ## Testing
 
 ### Rstest

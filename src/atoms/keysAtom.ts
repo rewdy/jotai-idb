@@ -1,5 +1,5 @@
-import { atom } from 'jotai';
-import { getAllKeys } from '../db/queries.js';
+import { atom } from "jotai";
+import { getAllKeys } from "../db/queries.js";
 
 /**
  * Creates a writable atom that reads all keys from the store

@@ -1,7 +1,7 @@
-import { atom } from 'jotai';
-import { atomFamily } from 'jotai/utils';
-import { getById } from '../db/queries.js';
-import type { RecordType } from '../types/index.js';
+import { atom } from "jotai";
+import { atomFamily } from "jotai/utils";
+import { getById } from "../db/queries.js";
+import type { RecordType } from "../types/index.js";
 
 /**
  * Creates an atom family for reading a single item by ID

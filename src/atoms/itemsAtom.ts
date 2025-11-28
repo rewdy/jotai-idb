@@ -1,6 +1,6 @@
-import { atom } from 'jotai';
-import { getAll } from '../db/queries.js';
-import type { RecordType } from '../types/index.js';
+import { atom } from "jotai";
+import { getAll } from "../db/queries.js";
+import type { RecordType } from "../types/index.js";
 
 /**
  * Creates a writable atom that reads all items from the store

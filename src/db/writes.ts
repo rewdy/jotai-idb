@@ -1,4 +1,4 @@
-import type { RecordType } from '../types/index.js';
+import type { RecordType } from "../types/index.js";
 
 /**
  * Puts a record into the object store
@@ -9,7 +9,7 @@ export function putRecord<T extends RecordType>(
   value: T,
 ): Promise<IDBValidKey> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readwrite');
+    const transaction = db.transaction([storeName], "readwrite");
     const store = transaction.objectStore(storeName);
     const request = store.put(value);
 
@@ -32,7 +32,7 @@ export function deleteRecord(
   id: IDBValidKey,
 ): Promise<void> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readwrite');
+    const transaction = db.transaction([storeName], "readwrite");
     const store = transaction.objectStore(storeName);
     const request = store.delete(id);
 
@@ -51,7 +51,7 @@ export function deleteRecord(
  */
 export function clearStore(db: IDBDatabase, storeName: string): Promise<void> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readwrite');
+    const transaction = db.transaction([storeName], "readwrite");
     const store = transaction.objectStore(storeName);
     const request = store.clear();
 

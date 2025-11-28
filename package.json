@@ -30,6 +30,8 @@
   },
   "private": true,
   "dependencies": {
-    "jotai": "^2.15.1"
+    "fake-indexeddb": "^6.2.5",
+    "jotai": "^2.15.1",
+    "react": "^19.2.0"
   }
 }

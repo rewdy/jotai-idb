@@ -1,10 +1,10 @@
-import { atom } from 'jotai';
-import { atomFamily } from 'jotai/utils';
-import type { SetterAction } from '../atoms/setterAtom.js';
-import { openDB } from '../db/openDB.js';
-import { getAll, getAllByRange, getAllKeys, getById } from '../db/queries.js';
-import { deleteRecord, putRecord } from '../db/writes.js';
-import type { JotaiIDBConfig, RangeQuery, RecordType } from '../types/index.js';
+import { atom } from "jotai";
+import { atomFamily } from "jotai/utils";
+import type { SetterAction } from "../atoms/setterAtom.js";
+import { openDB } from "../db/openDB.js";
+import { getAll, getAllByRange, getAllKeys, getById } from "../db/queries.js";
+import { deleteRecord, putRecord } from "../db/writes.js";
+import type { JotaiIDBConfig, RangeQuery, RecordType } from "../types/index.js";
 
 /**
  * Main JotaiIDB class for managing IndexedDB state with Jotai atoms
@@ -15,19 +15,28 @@ export class JotaiIDB<T extends RecordType> {
   private storeName: string;
   private config: JotaiIDBConfig;
 
+  // Force update triggers for cache invalidation
+  private forceUpdateItems = atom(0);
+  private forceUpdateKeys = atom(0);
+  private forceUpdateEntries = atom(0);
+
   // Public atoms
-  items = atom(async () => {
-    if (!this.db) throw new Error('JotaiIDB not initialized');
+  items = atom(async (get) => {
+    // Re-read when force update changes
+    get(this.forceUpdateItems);
+    if (!this.db) throw new Error("JotaiIDB not initialized");
     return getAll<T>(this.db, this.storeName);
   });
 
-  keys = atom(async () => {
-    if (!this.db) throw new Error('JotaiIDB not initialized');
+  keys = atom(async (get) => {
+    get(this.forceUpdateKeys);
+    if (!this.db) throw new Error("JotaiIDB not initialized");
     return getAllKeys(this.db, this.storeName);
   });
 
-  entries = atom(async () => {
-    if (!this.db) throw new Error('JotaiIDB not initialized');
+  entries = atom(async (get) => {
+    get(this.forceUpdateEntries);
+    if (!this.db) throw new Error("JotaiIDB not initialized");
     const items = await getAll<T>(this.db, this.storeName);
     return items.map((item) => [item.id, item] as const);
   });
@@ -35,28 +44,34 @@ export class JotaiIDB<T extends RecordType> {
   // Atom families
   private itemAtomFamilyFn = atomFamily((id: string) =>
     atom(async () => {
-      if (!this.db) throw new Error('JotaiIDB not initialized');
+      if (!this.db) throw new Error("JotaiIDB not initialized");
       return getById<T>(this.db, this.storeName, id);
     }),
   );
 
   private rangeAtomFamilyFn = atomFamily((query: RangeQuery) =>
     atom(async () => {
-      if (!this.db) throw new Error('JotaiIDB not initialized');
+      if (!this.db) throw new Error("JotaiIDB not initialized");
       return getAllByRange<T>(this.db, this.storeName, query);
     }),
   );
 
   // Setter atom for write operations
-  setter = atom(null, async (_get, _set, action: SetterAction<T>) => {
-    if (!this.db) throw new Error('JotaiIDB not initialized');
+  setter = atom(null, async (_get, set, action: SetterAction<T>) => {
+    if (!this.db) throw new Error("JotaiIDB not initialized");
 
-    if (action.type === 'put') {
+    if (action.type === "put") {
       await putRecord(this.db, this.storeName, action.value);
-      // Note: Atoms will be re-evaluated on next read due to Jotai's default behavior
-    } else if (action.type === 'delete') {
+      // Trigger invalidation
+      set(this.forceUpdateItems, (v: number) => v + 1);
+      set(this.forceUpdateKeys, (v: number) => v + 1);
+      set(this.forceUpdateEntries, (v: number) => v + 1);
+    } else if (action.type === "delete") {
       await deleteRecord(this.db, this.storeName, action.id);
-      // Note: Atoms will be re-evaluated on next read due to Jotai's default behavior
+      // Trigger invalidation
+      set(this.forceUpdateItems, (v: number) => v + 1);
+      set(this.forceUpdateKeys, (v: number) => v + 1);
+      set(this.forceUpdateEntries, (v: number) => v + 1);
     }
   });
 
@@ -79,7 +94,7 @@ export class JotaiIDB<T extends RecordType> {
    */
   item(id: string) {
     if (!this.db) {
-      throw new Error('JotaiIDB not initialized. Call await init() first.');
+      throw new Error("JotaiIDB not initialized. Call await init() first.");
     }
     return this.itemAtomFamilyFn(id);
   }
@@ -89,7 +104,7 @@ export class JotaiIDB<T extends RecordType> {
    */
   range(query: RangeQuery) {
     if (!this.db) {
-      throw new Error('JotaiIDB not initialized. Call await init() first.');
+      throw new Error("JotaiIDB not initialized. Call await init() first.");
     }
     return this.rangeAtomFamilyFn(query);
   }

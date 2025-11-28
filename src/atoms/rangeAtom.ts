@@ -1,7 +1,7 @@
-import { atom } from 'jotai';
-import { atomFamily } from 'jotai/utils';
-import { getAllByRange } from '../db/queries.js';
-import type { RangeQuery, RecordType } from '../types/index.js';
+import { atom } from "jotai";
+import { atomFamily } from "jotai/utils";
+import { getAllByRange } from "../db/queries.js";
+import type { RangeQuery, RecordType } from "../types/index.js";
 
 /**
  * Creates an atom family for range queries

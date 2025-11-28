@@ -1,4 +1,4 @@
-import type { RangeQuery, RecordType } from '../types/index.js';
+import type { RangeQuery, RecordType } from "../types/index.js";
 
 /**
  * Retrieves all records from the object store
@@ -8,7 +8,7 @@ export function getAll<T extends RecordType>(
   storeName: string,
 ): Promise<T[]> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readonly');
+    const transaction = db.transaction([storeName], "readonly");
     const store = transaction.objectStore(storeName);
     const request = store.getAll();
 
@@ -31,7 +31,7 @@ export function getById<T extends RecordType>(
   id: IDBValidKey,
 ): Promise<T | undefined> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readonly');
+    const transaction = db.transaction([storeName], "readonly");
     const store = transaction.objectStore(storeName);
     const request = store.get(id);
 
@@ -53,7 +53,7 @@ export function getAllKeys(
   storeName: string,
 ): Promise<IDBValidKey[]> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readonly');
+    const transaction = db.transaction([storeName], "readonly");
     const store = transaction.objectStore(storeName);
     const request = store.getAllKeys();
 
@@ -76,7 +76,7 @@ export function getAllByRange<T extends RecordType>(
   query: RangeQuery,
 ): Promise<T[]> {
   return new Promise((resolve, reject) => {
-    const transaction = db.transaction([storeName], 'readonly');
+    const transaction = db.transaction([storeName], "readonly");
     const store = transaction.objectStore(storeName);
     const index = store.index(query.index);
 

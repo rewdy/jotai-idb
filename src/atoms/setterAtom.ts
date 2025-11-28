@@ -1,11 +1,11 @@
-import type { WritableAtom } from 'jotai';
-import { atom } from 'jotai';
-import { deleteRecord, putRecord } from '../db/writes.js';
-import type { RecordType } from '../types/index.js';
+import type { WritableAtom } from "jotai";
+import { atom } from "jotai";
+import { deleteRecord, putRecord } from "../db/writes.js";
+import type { RecordType } from "../types/index.js";
 
 export type SetterAction<T extends RecordType> =
-  | { type: 'put'; value: T }
-  | { type: 'delete'; id: IDBValidKey };
+  | { type: "put"; value: T }
+  | { type: "delete"; id: IDBValidKey };
 
 /**
  * Creates a write-through atom that syncs writes to IndexedDB
@@ -21,7 +21,7 @@ export function createSetterAtom<T extends RecordType>(
 ) {
   // Write-only atom that handles put/delete operations
   return atom(null, async (_get, set, action: SetterAction<T>) => {
-    if (action.type === 'put') {
+    if (action.type === "put") {
       // Write to IDB
       await putRecord(db, storeName, action.value);
 
@@ -31,7 +31,7 @@ export function createSetterAtom<T extends RecordType>(
 
       // Invalidate the specific item atom
       set(itemAtomFamily(action.value.id));
-    } else if (action.type === 'delete') {
+    } else if (action.type === "delete") {
       // Delete from IDB
       await deleteRecord(db, storeName, action.id);
 

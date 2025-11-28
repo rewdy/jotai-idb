@@ -1,4 +1,4 @@
-import type { JotaiIDBConfig, StoreDefinition } from '../types/index.js';
+import type { JotaiIDBConfig, StoreDefinition } from "../types/index.js";
 
 /**
  * Opens or creates an IndexedDB database with the specified configuration.
