@@ -1,0 +1,35 @@
+{
+  "name": "jotai-idb",
+  "version": "1.0.0",
+  "type": "module",
+  "exports": {
+    ".": {
+      "types": "./dist/index.d.ts",
+      "import": "./dist/index.js",
+      "require": "./dist/index.cjs"
+    }
+  },
+  "main": "./dist/index.cjs",
+  "types": "./dist/index.d.ts",
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "rslib build",
+    "check": "biome check --write",
+    "dev": "rslib build --watch",
+    "format": "biome format --write",
+    "test": "rstest"
+  },
+  "devDependencies": {
+    "@biomejs/biome": "2.3.2",
+    "@rslib/core": "^0.18.2",
+    "@rstest/core": "^0.6.6",
+    "@types/node": "^24.10.1",
+    "typescript": "^5.9.3"
+  },
+  "private": true,
+  "dependencies": {
+    "jotai": "^2.15.1"
+  }
+}
