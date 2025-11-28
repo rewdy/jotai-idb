@@ -1,6 +1,7 @@
 # Jotai IndexedDB Library – Detailed Implementation Plan
 
 ## 1. Project Goals
+
 Create a **typed, reactive, Jotai-based IndexedDB state manager** with:
 
 - A single database instance configured by the user
@@ -15,16 +16,17 @@ Create a **typed, reactive, Jotai-based IndexedDB state manager** with:
 - Small, modular, idiomatic TypeScript
 
 This should be analogous to jotai-minidb, but:
+
 - Much more powerful  
 - Typed  
 - Index-aware  
 - Range-query capable  
 - DynamoDB-pattern friendly  
 
-
 ## 2. Deliverables (High-level)
 
 ### Library features
+
 - `JotaiIDB<T>` main class  
 - Database initialization  
 - Object store & index creation  
@@ -35,6 +37,7 @@ This should be analogous to jotai-minidb, but:
 - Basic CRUD helpers  
 
 ### API design
+
 ```ts
 const db = new JotaiIDB<DBRecord>({
   dbName: "mydb",
@@ -68,7 +71,6 @@ db.range({
 db.setter
 ```
 
-
 ## 3. Project Structure
 
 ```
@@ -94,72 +96,81 @@ tsconfig.json
 README.md
 ```
 
-
 ## 4. Detailed Implementation Plan
 
 ### Phase 1: Types (`/src/types/index.ts`)
 
 Define:
+
 - `IndexDefinition`
 - `StoreDefinition`
 - `JotaiIDBConfig<T>`
 - `RangeQuery`
 - `RecordType`
 
-
 ### Phase 2: IndexedDB Setup (`/src/db/openDB.ts`)
+
 Implement:
+
 - `openDB(config)`
 - handle version upgrades
 - create store + indexes
 - wrap everything in Promises
 
-
 ### Phase 3: CRUD Helpers
 
 #### `/src/db/writes.ts`
+
 - `putRecord(db, storeName, value)`
 - `deleteRecord(db, storeName, id)`
 
 #### `/src/db/queries.ts`
+
 - `getAll(db, storeName)`
 - `getById(db, storeName, id)`
 - `getAllByRange(db, storeName, index, lower, upper)`
 - `prefixRange(prefix)` helper
 
-
 ### Phase 4: Atom Implementations
 
 #### `/src/atoms/itemsAtom.ts`
+
 Loads all items from IDB.
 
 #### `/src/atoms/keysAtom.ts`
+
 Maps items → keys.
 
 #### `/src/atoms/entriesAtom.ts`
+
 Maps items → `[id, value]`.
 
 #### `/src/atoms/itemAtom.ts`
+
 Atom family for a single record by ID.
 
 #### `/src/atoms/rangeAtom.ts`
+
 Reads from index using a range.
 
 #### `/src/atoms/setterAtom.ts`
+
 Write-through atom:
+
 1. Writes to IDB  
 2. Updates Jotai atoms  
-
 
 ## 5. Core Class – `/src/core/JotaiIDB.ts`
 
 Handles:
+
 - Config & initialization
 - dbPromise
 - Exposes atoms
 - Provides `item()`, `range()`, and `setter`
 
 Example structure:
+
 ```ts
 export class JotaiIDB<T extends RecordType> {
   private dbPromise: Promise<IDBDatabase>;
@@ -190,16 +201,17 @@ export class JotaiIDB<T extends RecordType> {
 }
 ```
 
-
 ## 6. Public Exports – `/src/index.ts`
+
 ```ts
 export * from "./core/JotaiIDB";
 export * from "./types";
 ```
 
-
 ## 7. Optional Features
+
 Add later:
+
 - deleteAtom  
 - clearAtom  
 - multi-store support  
@@ -208,10 +220,10 @@ Add later:
 - optimistic updates  
 - migrations  
 
-
 ## 8. README Example
 
 Example usage:
+
 ```ts
 type Picture = {
   id: `picture#${string}`;
@@ -256,7 +268,6 @@ const picturesAtom = db.range({
 const setItemAtom = db.setter;
 ```
 
-
 ## 9. Coding Notes (for LLM implementation)
 
 - TypeScript strict mode  
@@ -267,4 +278,3 @@ const setItemAtom = db.setter;
 - Keep files modular  
 - No default exports  
 - Follow Jotai idioms  
-
