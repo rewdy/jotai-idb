@@ -1,4 +1,3 @@
-export type { SetterAction } from "./atoms/setterAtom.js";
 export { JotaiIDB } from "./core/JotaiIDB.js";
 export type {
   IndexDefinition,
@@ -6,5 +5,6 @@ export type {
   RangeQuery,
   RangeQueryResult,
   RecordType,
+  SetterAction,
   StoreDefinition,
 } from "./types/index.js";

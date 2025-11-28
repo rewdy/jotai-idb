@@ -1,10 +1,14 @@
 import { atom } from "jotai";
 import { atomFamily } from "jotai/utils";
-import type { SetterAction } from "../atoms/setterAtom.js";
 import { openDB } from "../db/openDB.js";
 import { getAll, getAllByRange, getAllKeys, getById } from "../db/queries.js";
 import { deleteRecord, putRecord } from "../db/writes.js";
-import type { JotaiIDBConfig, RangeQuery, RecordType } from "../types/index.js";
+import type {
+  JotaiIDBConfig,
+  RangeQuery,
+  RecordType,
+  SetterAction,
+} from "../types/index.js";
 
 /**
  * Main JotaiIDB class for managing IndexedDB state with Jotai atoms
@@ -46,14 +50,14 @@ export class JotaiIDB<T extends RecordType> {
     atom(async () => {
       if (!this.db) throw new Error("JotaiIDB not initialized");
       return getById<T>(this.db, this.storeName, id);
-    }),
+    })
   );
 
   private rangeAtomFamilyFn = atomFamily((query: RangeQuery) =>
     atom(async () => {
       if (!this.db) throw new Error("JotaiIDB not initialized");
       return getAllByRange<T>(this.db, this.storeName, query);
-    }),
+    })
   );
 
   // Setter atom for write operations

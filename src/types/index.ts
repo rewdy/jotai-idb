@@ -50,3 +50,10 @@ export interface RangeQuery {
  * Result of a range query
  */
 export type RangeQueryResult<T extends RecordType> = Array<[string, T]>;
+
+/**
+ * Action for the setter atom
+ */
+export type SetterAction<T extends RecordType> =
+  | { type: "put"; value: T }
+  | { type: "delete"; id: IDBValidKey };
