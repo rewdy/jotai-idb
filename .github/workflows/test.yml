@@ -1,0 +1,12 @@
+name: Test and Build
+
+on:
+  pull_request:
+
+permissions:
+  contents: read
+  packages: read
+
+jobs:
+  test:
+    uses: ./.github/workflows/_test-and-build.yml
