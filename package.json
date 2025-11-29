@@ -1,6 +1,6 @@
 {
   "name": "jotai-idb",
-  "version": "0.0.1",
+  "version": "0.0.2",
   "description": "A typed, reactive IndexedDB state manager powered by Jotai. Persist and sync your application state with minimal boilerplate, full type safety, and Jotai's atom-based architecture.",
   "type": "module",
   "exports": {
@@ -40,6 +40,7 @@
   "license": "MIT",
   "scripts": {
     "build": "rslib build",
+    "bump": "bumpp",
     "check": "biome check . && bun run format:md:check",
     "check:fix": "biome check . --fix && bun run format",
     "dev": "rslib build --watch",
@@ -55,10 +56,11 @@
     "@rslib/core": "^0.18.2",
     "@rstest/core": "^0.6.6",
     "@types/node": "^24.10.1",
-    "typescript": "^5.9.3",
+    "bumpp": "^10.3.2",
     "fake-indexeddb": "^6.2.5",
     "jotai": "^2.15.1",
-    "react": "^19.2.0"
+    "react": "^19.2.0",
+    "typescript": "^5.9.3"
   },
   "peerDependencies": {
     "jotai": ">=2.0.0",
