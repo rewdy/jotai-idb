@@ -7,6 +7,7 @@ on:
 
 permissions:
   contents: write
+  issues: write
   packages: write
   id-token: write
 
@@ -31,7 +32,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: "20"
+          node-version: "22"
           registry-url: "https://registry.npmjs.org"
 
       - name: Install dependencies
@@ -40,8 +41,10 @@ jobs:
       - name: Build library
         run: bun run build
 
+      - name: Verify the integrity of provenance attestations and registry signatures for installed dependencies
+        run: npm audit signatures
+
       - name: Release with semantic-release
         run: npx semantic-release
         env:
-          NPM_CONFIG_PROVENANCE: true
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
