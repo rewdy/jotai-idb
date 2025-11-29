@@ -1,6 +1,7 @@
 {
   "name": "jotai-idb",
-  "version": "1.0.0",
+  "version": "0.0.1",
+  "description": "A typed, reactive IndexedDB state manager powered by Jotai. Persist and sync your application state with minimal boilerplate, full type safety, and Jotai's atom-based architecture.",
   "type": "module",
   "exports": {
     ".": {
@@ -14,6 +15,26 @@
   "files": [
     "dist"
   ],
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/andrewmeyer/jotai-idb.git"
+  },
+  "bugs": {
+    "url": "https://github.com/andrewmeyer/jotai-idb/issues"
+  },
+  "homepage": "https://github.com/andrewmeyer/jotai-idb#readme",
+  "keywords": [
+    "jotai",
+    "indexeddb",
+    "state-management",
+    "reactive",
+    "typescript",
+    "react",
+    "storage",
+    "database"
+  ],
+  "author": "Andrew Meyer",
+  "license": "MIT",
   "scripts": {
     "build": "rslib build",
     "check": "biome check . && bun run format:md:check",
@@ -31,12 +52,18 @@
     "@rslib/core": "^0.18.2",
     "@rstest/core": "^0.6.6",
     "@types/node": "^24.10.1",
-    "typescript": "^5.9.3"
-  },
-  "private": true,
-  "dependencies": {
+    "typescript": "^5.9.3",
     "fake-indexeddb": "^6.2.5",
     "jotai": "^2.15.1",
     "react": "^19.2.0"
+  },
+  "peerDependencies": {
+    "jotai": ">=2.0.0",
+    "react": ">=18.0.0"
+  },
+  "peerDependencyMeta": {
+    "react": {
+      "optional": false
+    }
   }
 }
