@@ -167,7 +167,7 @@ const items = await store.get(db.items);
 ```
 
 1. **Use expect().toHaveLength()** for array assertions when order is variable
-1. **Use expect().toEqual()** when testing specific values or ordering
+2. **Use expect().toEqual()** when testing specific values or ordering
 
 ## Running Tests in Watch Mode
 

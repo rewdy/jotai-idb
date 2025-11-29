@@ -10,6 +10,7 @@
       },
       "devDependencies": {
         "@biomejs/biome": "2.3.2",
+        "@rewdy/md-formatter": "^0.4.0",
         "@rslib/core": "^0.18.2",
         "@rstest/core": "^0.6.6",
         "@types/node": "^24.10.1",
@@ -75,6 +76,24 @@
     "@module-federation/webpack-bundler-runtime": ["@module-federation/webpack-bundler-runtime@0.21.4", "", { "dependencies": { "@module-federation/runtime": "0.21.4", "@module-federation/sdk": "0.21.4" } }, "sha512-dusmR3uPnQh9u9ChQo3M+GLOuGFthfvnh7WitF/a1eoeTfRmXqnMFsXtZCUK+f/uXf+64874Zj/bhAgbBcVHZA=="],
 
     "@napi-rs/wasm-runtime": ["@napi-rs/wasm-runtime@1.0.7", "", { "dependencies": { "@emnapi/core": "^1.5.0", "@emnapi/runtime": "^1.5.0", "@tybys/wasm-util": "^0.10.1" } }, "sha512-SeDnOO0Tk7Okiq6DbXmmBODgOAb9dp9gjlphokTUxmt8U3liIP1ZsozBahH69j/RJv+Rfs6IwUKHTgQYJ/HBAw=="],
+
+    "@rewdy/md-formatter": ["@rewdy/md-formatter@0.4.0", "", { "optionalDependencies": { "@rewdy/md-formatter-darwin-arm64": "0.4.0", "@rewdy/md-formatter-darwin-x64": "0.4.0", "@rewdy/md-formatter-linux-arm64-gnu": "0.4.0", "@rewdy/md-formatter-linux-arm64-musl": "0.4.0", "@rewdy/md-formatter-linux-x64-gnu": "0.4.0", "@rewdy/md-formatter-linux-x64-musl": "0.4.0", "@rewdy/md-formatter-win32-arm64-msvc": "0.4.0", "@rewdy/md-formatter-win32-x64-msvc": "0.4.0" }, "bin": { "mdfmt": "bin/mdfmt.js" } }, "sha512-bx1/itsuJhGtSP1YGd0EsCWqUL84BZtA5mrVaWq7pfNVPiooxsElXcUWBGYICxdcDtzKZTHMwd9RiT7RQjlGNg=="],
+
+    "@rewdy/md-formatter-darwin-arm64": ["@rewdy/md-formatter-darwin-arm64@0.4.0", "", { "os": "darwin", "cpu": "arm64" }, "sha512-CIH5H58le9fkVTynkfkeQuoQlI2KkVWo859LzHPDjW8L+RdnDteGHen6T23Echbm97EuN5ohs1qn/p2th5SeCw=="],
+
+    "@rewdy/md-formatter-darwin-x64": ["@rewdy/md-formatter-darwin-x64@0.4.0", "", { "os": "darwin", "cpu": "x64" }, "sha512-UskRv6npu0PCS72Iq9revPNzWV9Ph5IK+cAyHj15gBZsrVEKStjzWojKVRmpmZ7phcpmzCF30hKLH25AbD0m9Q=="],
+
+    "@rewdy/md-formatter-linux-arm64-gnu": ["@rewdy/md-formatter-linux-arm64-gnu@0.4.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-dvzTrj3M9w5JXv4kzNC/gSJK786kKsXO4oo3wZndmKYZEfdsY6L4xoD+5rncAk/nWXbdxZ9rSAR4lrb5Vh2lew=="],
+
+    "@rewdy/md-formatter-linux-arm64-musl": ["@rewdy/md-formatter-linux-arm64-musl@0.4.0", "", { "os": "linux", "cpu": "arm64" }, "sha512-qG9q3TsT9s+PR1LPxIMjyGEbbLY+a+Kuegq+j2FQgyz1D1IzVsBSOL6zOeX9Rw1WAKoMR5O6zOP402bUTY0Oig=="],
+
+    "@rewdy/md-formatter-linux-x64-gnu": ["@rewdy/md-formatter-linux-x64-gnu@0.4.0", "", { "os": "linux", "cpu": "x64" }, "sha512-VDTzz/wYEF/hvVzir75tzsBx0CDsDTzpWKcA5/M/aAQO+F7uI/sCeR3gjrxTi/cIf1ubow3d5Ik+a+TMucloAg=="],
+
+    "@rewdy/md-formatter-linux-x64-musl": ["@rewdy/md-formatter-linux-x64-musl@0.4.0", "", { "os": "linux", "cpu": "x64" }, "sha512-BfPUAgGrLVFuHkU0cGjm39AasnZfU7l5ttbKWxAOy9+Vj/wPlJrsU1G45F+C+00GB9A+zQRyLI4Nd3X8CIXH2A=="],
+
+    "@rewdy/md-formatter-win32-arm64-msvc": ["@rewdy/md-formatter-win32-arm64-msvc@0.4.0", "", { "os": "win32", "cpu": "arm64" }, "sha512-JvMywXdKQj4E9zj7Vs91vQVhR2CKTh5vKtIkoLLet4oCpfUElj+cYjCYF42ljI32sGT/CXKbCLukS9+MzvWYxw=="],
+
+    "@rewdy/md-formatter-win32-x64-msvc": ["@rewdy/md-formatter-win32-x64-msvc@0.4.0", "", { "os": "win32", "cpu": "x64" }, "sha512-4InwDnSY3OXP5CdMq7RG7vbOAHZF8gC1QwGm3P9UpC/5YS65t6Un1ioV9VjBpb7d69raz4tY9ifLul34J9Bl3w=="],
 
     "@rsbuild/core": ["@rsbuild/core@1.6.9", "", { "dependencies": { "@rspack/core": "1.6.5", "@rspack/lite-tapable": "~1.1.0", "@swc/helpers": "^0.5.17", "core-js": "~3.47.0", "jiti": "^2.6.1" }, "bin": { "rsbuild": "bin/rsbuild.js" } }, "sha512-wf41bbFIzqQsGkrDal2eVC4cxN6II1k4bUo1g7OFuvWeEOJzjoeK4R5xxKM9g5hRjbGAJs6OiQaGpASvUnDrsw=="],
 

@@ -223,6 +223,7 @@ The library is organized into focused modules:
 - **Core class** (`/src/core/JotaiIDB.ts`) - Manages atoms, configuration, and database lifecycle
 - **Type definitions** (`/src/types/index.ts`) - All public interfaces (RecordType, RangeQuery, SetterAction, etc.)
 - **Database operations** (`/src/db/`)
+
   - `openDB.ts` - Opens/creates IndexedDB with version upgrades
   - `queries.ts` - Read operations (getAll, getById, getAllKeys, getAllByRange)
   - `writes.ts` - Write operations (putRecord, deleteRecord)

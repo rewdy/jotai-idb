@@ -16,13 +16,18 @@
   ],
   "scripts": {
     "build": "rslib build",
-    "check": "biome check --write",
+    "check": "biome check . && bun run format:md:check",
+    "check:fix": "biome check . --fix && bun run format",
     "dev": "rslib build --watch",
-    "format": "biome format --write",
+    "format": "bun run format:rest && bun run format:md",
+    "format:md": "mdfmt \"**/*.md\" --write",
+    "format:md:check": "mdfmt \"**/*.md\" --check",
+    "format:rest": "biome format --write",
     "test": "rstest"
   },
   "devDependencies": {
     "@biomejs/biome": "2.3.2",
+    "@rewdy/md-formatter": "^0.4.0",
     "@rslib/core": "^0.18.2",
     "@rstest/core": "^0.6.6",
     "@types/node": "^24.10.1",
