@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.3](https://github.com/rewdy/jotai-idb/compare/v1.0.2...v1.0.3) (2025-11-30)
+
+
+### Bug Fixes
+
+* updates gitlab workflow for release ([6598471](https://github.com/rewdy/jotai-idb/commit/65984711a12d6290533c49619ca571c279a990b5))
+
 ## [1.0.2](https://github.com/rewdy/jotai-idb/compare/v1.0.1...v1.0.2) (2025-11-30)
 
 
