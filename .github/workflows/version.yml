@@ -36,7 +36,7 @@ jobs:
 
       - name: Bump version and create tag
         id: bump
-        run: bun run bump
+        run: bun run bump --commit --tag
         continue-on-error: true
 
       - name: Push version bump and tag
