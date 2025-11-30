@@ -27,6 +27,9 @@ jobs:
     needs: release
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+
     if: ${{ needs.release.outputs.release_created }}
 
     steps:
