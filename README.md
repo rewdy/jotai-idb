@@ -776,4 +776,4 @@ jotai-idb requires:
 
 ## License
 
-See LICENSE file in repository.
+MIT
