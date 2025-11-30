@@ -74,11 +74,11 @@ git push origin feat/my-feature
 ```
 
 1. **CI runs automatically** on PR:
-   - Tests run via `test.yml`
-   - Linting checks
-   - Build verification
 
-1. **Get review and merge** to `main` via GitHub
+  - Tests run via `test.yml`
+  - Linting checks
+  - Build verification
+2. **Get review and merge** to `main` via GitHub
 
 ### Automated Release
 
@@ -89,6 +89,7 @@ Once merged to `main`, the release process is fully automated:
 - Runs on every push to `main`
 - Analyzes commits since last tag
 - If `feat:` or `fix:` commits found:
+
   - Bumps version (using [bumpp](https://github.com/antfu/bumpp))
   - Updates `package.json`
   - Creates a git commit: `chore(release): bump version to vX.Y.Z [skip ci]`
@@ -108,11 +109,11 @@ Once merged to `main`, the release process is fully automated:
 
 Based on [Semantic Versioning](https://semver.org/):
 
-| Commit Type       | Version Change | Example       |
+| Commit Type | Version Change | Example |
 | --- | --- | --- |
-| `fix:`            | PATCH          | 1.0.0 → 1.0.1 |
-| `feat:`           | MINOR          | 1.0.0 → 1.1.0 |
-| `BREAKING CHANGE` | MAJOR          | 1.0.0 → 2.0.0 |
+| `fix:` | PATCH | 1.0.0 → 1.0.1 |
+| `feat:` | MINOR | 1.0.0 → 1.1.0 |
+| `BREAKING CHANGE` | MAJOR | 1.0.0 → 2.0.0 |
 
 ### Manual Release (if needed)
 
