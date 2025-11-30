@@ -75,10 +75,11 @@ git push origin feat/my-feature
 
 1. **CI runs automatically** on PR:
 
-  - Tests run via `test.yml`
-  - Linting checks
-  - Build verification
-2. **Get review and merge** to `main` via GitHub
+- Tests run via `test.yml`
+- Linting checks
+- Build verification
+
+1. **Get review and merge** to `main` via GitHub
 
 ### Automated Release
 
