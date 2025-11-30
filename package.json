@@ -1,6 +1,6 @@
 {
   "name": "jotai-idb",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "A typed, reactive IndexedDB state manager powered by Jotai. Persist and sync your application state with minimal boilerplate, full type safety, and Jotai's atom-based architecture.",
   "type": "module",
   "main": "./dist/index.cjs",
