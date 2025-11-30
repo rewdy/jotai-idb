@@ -17,7 +17,6 @@
   ],
   "scripts": {
     "build": "rslib build",
-    "bump": "bumpp",
     "check": "biome check . && bun run format:md:check",
     "check:fix": "biome check . --fix && bun run format",
     "dev": "rslib build --watch",
@@ -36,7 +35,6 @@
     "@rslib/core": "^0.18.2",
     "@rstest/core": "^0.6.6",
     "@types/node": "^24.10.1",
-    "bumpp": "^10.3.2",
     "fake-indexeddb": "^6.2.5",
     "husky": "^9.1.7",
     "jotai": "^2.15.1",
