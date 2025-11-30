@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.0.1](https://github.com/rewdy/jotai-idb/compare/v1.0.0...v1.0.1) (2025-11-30)
+
+
+### Bug Fixes
+
+* updates release code ([5a70a53](https://github.com/rewdy/jotai-idb/commit/5a70a536086ccf02c58f8396cc0f5a02de5c57ac))
+
 ## 1.0.0 (2025-11-30)
 
 
