@@ -12,12 +12,6 @@
       }
     ],
     [
-      "@semantic-release/npm",
-      {
-        "pkgRoot": "."
-      }
-    ],
-    [
       "@semantic-release/git",
       {
         "assets": ["../CHANGELOG.md", "package.json"],

@@ -1,0 +1,50 @@
+name: Publish to npm
+
+on:
+  push:
+    tags:
+      - "v*"
+
+permissions:
+  contents: read
+  id-token: write
+
+jobs:
+  test:
+    uses: ./.github/workflows/_test-and-build.yml
+
+  publish:
+    needs: test
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: "22"
+          registry-url: "https://registry.npmjs.org"
+
+      - name: Setup Bun
+        uses: oven-sh/setup-bun@v1
+
+      - name: Install dependencies
+        working-directory: ./lib
+        run: bun install
+
+      - name: Build library
+        working-directory: ./lib
+        run: bun run build
+
+      - name: Publish to npm
+        working-directory: ./lib
+        run: |
+          bun pm pack
+          TARBALL=$(ls *.tgz | head -1)
+          if [ -z "$TARBALL" ]; then
+            echo "No tarball found!"
+            exit 1
+          fi
+          npm publish "$TARBALL" --provenance
