@@ -11,7 +11,12 @@
         "changelogFile": "../CHANGELOG.md"
       }
     ],
-    "@semantic-release/npm",
+    [
+      "@semantic-release/npm",
+      {
+        "pkgRoot": "."
+      }
+    ],
     [
       "@semantic-release/git",
       {
