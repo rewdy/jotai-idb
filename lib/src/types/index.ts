@@ -28,10 +28,16 @@ export interface StoreDefinition {
 /**
  * Configuration for JotaiIDB
  */
-export interface JotaiIDBConfig {
+export interface JotaiIDBConfig<T extends RecordType = RecordType> {
   dbName: string;
   version: number;
   store: StoreDefinition;
+  /**
+   * Initial data to populate the store with on first creation.
+   * This data is only added when the database is first created (during onupgradeneeded).
+   * Keyed by record ID.
+   */
+  initialData?: Record<string, T>;
 }
 
 /**

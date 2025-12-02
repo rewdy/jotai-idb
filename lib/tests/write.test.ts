@@ -2,10 +2,12 @@ import { beforeEach, describe, expect, test } from "@rstest/core";
 import { createTestDB, store, type TestRecord } from "./setup.js";
 
 describe("Write Operations", () => {
-  let db: Awaited<ReturnType<typeof createTestDB>>;
+  let db: ReturnType<typeof createTestDB>;
 
   beforeEach(async () => {
-    db = await createTestDB();
+    db = createTestDB();
+    // Trigger initialization
+    await store.get(db.suspendBeforeInit);
   });
 
   test("puts a single record", async () => {
@@ -18,9 +20,9 @@ describe("Write Operations", () => {
 
     await store.set(db.setter, { type: "put", value: record });
 
-    const items = await store.get(db.items);
-    expect(items).toHaveLength(1);
-    expect(items[0]).toEqual(record);
+    const items = store.get(db.items);
+    expect(Object.keys(items || {})).toHaveLength(1);
+    expect(items?.["user-1"]).toEqual(record);
   });
 
   test("puts multiple records", async () => {
@@ -43,8 +45,8 @@ describe("Write Operations", () => {
       await store.set(db.setter, { type: "put", value: record });
     }
 
-    const items = await store.get(db.items);
-    expect(items).toHaveLength(2);
+    const items = store.get(db.items);
+    expect(Object.keys(items || {})).toHaveLength(2);
   });
 
   test("updates existing record", async () => {
@@ -64,7 +66,7 @@ describe("Write Operations", () => {
 
     await store.set(db.setter, { type: "put", value: updated });
 
-    const item = await store.get(db.item("user-1"));
+    const item = store.get(db.item("user-1"));
     expect(item?.name).toBe("Alice Updated");
   });
 
@@ -77,9 +79,9 @@ describe("Write Operations", () => {
     };
 
     await store.set(db.setter, { type: "put", value: record });
-    expect(await store.get(db.items)).toHaveLength(1);
+    expect(Object.keys(store.get(db.items) || {})).toHaveLength(1);
 
     await store.set(db.setter, { type: "delete", id: "user-1" });
-    expect(await store.get(db.items)).toHaveLength(0);
+    expect(Object.keys(store.get(db.items) || {})).toHaveLength(0);
   });
 });

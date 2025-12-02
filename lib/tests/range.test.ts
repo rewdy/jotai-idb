@@ -1,11 +1,14 @@
 import { beforeEach, describe, expect, test } from "@rstest/core";
+import { JotaiIDB } from "../src/index.js";
 import { createTestDB, store, type TestRecord } from "./setup.js";
 
 describe("Range Queries", () => {
-  let db: Awaited<ReturnType<typeof createTestDB>>;
+  let db: ReturnType<typeof createTestDB>;
 
   beforeEach(async () => {
-    db = await createTestDB();
+    db = createTestDB();
+    // Trigger initialization
+    await store.get(db.suspendBeforeInit);
 
     const records: TestRecord[] = [
       {
@@ -129,5 +132,61 @@ describe("Range Queries", () => {
       }),
     );
     expect(results.every((r) => r.type <= "user")).toBe(true);
+  });
+});
+
+describe("Range Query Initialization", () => {
+  test("range query works when accessed before items (empty db)", async () => {
+    // Create a fresh db and immediately query range WITHOUT reading items first
+    const freshDb = new JotaiIDB<TestRecord>({
+      dbName: `test-range-init-${Date.now()}-${Math.random()}`,
+      version: 1,
+      store: {
+        name: "main",
+        keyPath: "id",
+        indexes: [{ name: "byType", keyPath: "type" }],
+      },
+    });
+
+    // This should work and return empty array, not hang
+    const results = await store.get(
+      freshDb.range({
+        index: "byType",
+        lower: "user",
+        upper: "user",
+      }),
+    );
+
+    expect(results).toEqual([]);
+  });
+
+  test("range query works when accessed before items (with initial data)", async () => {
+    const initialData: Record<string, TestRecord> = {
+      "user-1": { id: "user-1", type: "user", name: "Alice", createdAt: 1000 },
+      "post-1": { id: "post-1", type: "post", name: "Post", createdAt: 2000 },
+    };
+
+    const freshDb = new JotaiIDB<TestRecord>({
+      dbName: `test-range-init-data-${Date.now()}-${Math.random()}`,
+      version: 1,
+      store: {
+        name: "main",
+        keyPath: "id",
+        indexes: [{ name: "byType", keyPath: "type" }],
+      },
+      initialData,
+    });
+
+    // Query range before reading items
+    const results = await store.get(
+      freshDb.range({
+        index: "byType",
+        lower: "user",
+        upper: "user",
+      }),
+    );
+
+    expect(results).toHaveLength(1);
+    expect(results[0].id).toBe("user-1");
   });
 });

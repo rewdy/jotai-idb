@@ -14,7 +14,7 @@ export type TestRecord = RecordType & {
 // Test setup utilities
 export const store = getDefaultStore();
 
-export async function createTestDB() {
+export function createTestDB() {
   return new JotaiIDB<TestRecord>({
     dbName: `test-db-${Date.now()}-${Math.random()}`,
     version: 1,
@@ -26,5 +26,5 @@ export async function createTestDB() {
         { name: "byTypeAndCreatedAt", keyPath: ["type", "createdAt"] },
       ],
     },
-  }).init();
+  });
 }

@@ -2,10 +2,10 @@ import { beforeEach, describe, expect, test } from "@rstest/core";
 import { createTestDB } from "./setup.js";
 
 describe("Atom Caching with atomFamily", () => {
-  let db: Awaited<ReturnType<typeof createTestDB>>;
+  let db: ReturnType<typeof createTestDB>;
 
-  beforeEach(async () => {
-    db = await createTestDB();
+  beforeEach(() => {
+    db = createTestDB();
   });
 
   test("db.item(id) returns same atom instance for same id", () => {

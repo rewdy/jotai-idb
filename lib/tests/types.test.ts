@@ -2,13 +2,16 @@ import { beforeEach, describe, expect, test } from "@rstest/core";
 import { createTestDB, store, type TestRecord } from "./setup.js";
 
 describe("Type Safety", () => {
-  let db: Awaited<ReturnType<typeof createTestDB>>;
+  let db: ReturnType<typeof createTestDB>;
 
-  beforeEach(async () => {
-    db = await createTestDB();
+  beforeEach(() => {
+    db = createTestDB();
   });
 
   test("records maintain type information", async () => {
+    // Trigger initialization
+    await store.get(db.suspendBeforeInit);
+
     const record: TestRecord = {
       id: "user-1",
       type: "user",
@@ -17,7 +20,7 @@ describe("Type Safety", () => {
     };
 
     await store.set(db.setter, { type: "put", value: record });
-    const retrieved = await store.get(db.item("user-1"));
+    const retrieved = store.get(db.item("user-1"));
 
     expect(retrieved?.type).toBe("user");
     expect(retrieved?.name).toBe("Alice");
