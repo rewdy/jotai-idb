@@ -5,7 +5,9 @@
     "example"
   ],
   "scripts": {
-    "build": "bun run --filter '*' build",
+    "build": "bun run build:lib && bun run build:example",
+    "build:lib": "bun --cwd lib build",
+    "build:example": "bun --cwd example build",
     "check": "biome check . && bun run format:md:check",
     "check:fix": "biome check . --fix && bun run format:md",
     "dev": "bun run --filter '*' dev",
