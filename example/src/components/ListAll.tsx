@@ -1,5 +1,5 @@
-/** biome-ignore-all lint/a11y/useValidAnchor: <explanation> */
-/** biome-ignore-all lint/a11y/useSemanticElements: <explanation> */
+/** biome-ignore-all lint/a11y/useValidAnchor: I'm using a non semantic link implementation */
+/** biome-ignore-all lint/a11y/useSemanticElements: I'm using a non semantic link implementation */
 import { useAtomValue } from "jotai";
 import type React from "react";
 import { withSuspense } from "../helpers/withSuspense";
