@@ -18,6 +18,9 @@ jobs:
     needs: test
     runs-on: ubuntu-latest
 
+    permissions:
+      id-token: write
+
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
@@ -35,6 +38,9 @@ jobs:
 
       - name: Install dependencies
         run: bun install
+      
+      - name: Build library
+        run: bun run build:lib
 
       - name: Run semantic-release
         env:
