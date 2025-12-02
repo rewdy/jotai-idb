@@ -1,0 +1,28 @@
+{
+  "name": "example",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build": "rsbuild build",
+    "dev": "rsbuild dev --open",
+    "typecheck": "tsc --noEmit",
+    "preview": "rsbuild preview"
+  },
+  "dependencies": {
+    "react": "^19.2.0",
+    "react-dom": "^19.2.0",
+    "jotai": "^2.2.3",
+    "jotai-idb": "workspace:*"
+  },
+  "devDependencies": {
+    "@picocss/pico": "*",
+    "@rsbuild/core": "^1.6.7",
+    "@rsbuild/plugin-react": "^1.4.2",
+    "@rsbuild/plugin-sass": "*",
+    "@types/react": "^19.2.6",
+    "@types/react-dom": "^19.2.3",
+    "jotai-devtools": "0.13.0",
+    "sass": "*"
+  }
+}

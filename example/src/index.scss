@@ -1,0 +1,64 @@
+@use "@picocss/pico/scss/pico" with (
+  $theme-color: "blue",
+  $semantic-root-element: "#root"
+);
+
+// Demo only custom styles
+
+dialog article header {
+  display: flex;
+  flex-direction: row-reverse;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+article header {
+  h2,
+  h3,
+  h4 {
+    font-size: 1.2rem;
+    margin: 0.25rem 0;
+  }
+}
+
+.info-block {
+  --block-color: #b240d8;
+
+  &::before {
+    content: "ⓘ";
+    margin-right: 0.5rem;
+    color: var(--block-color);
+  }
+
+  margin: 0 0 1.5rem 0;
+  padding: 1rem 1rem;
+  border: 1px solid color-mix(in srgb, var(--block-color) 50%, transparent);
+  background-color: color-mix(in srgb, var(--block-color) 10%, transparent);
+
+  code {
+    background-color: color-mix(in srgb, var(--block-color) 20%, transparent);
+    color: var(--block-color);
+  }
+
+  > *:last-child {
+    margin-bottom: 0;
+  }
+}
+
+.display-grid {
+  display: flex;
+  flex-direction: row;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  > div {
+    width: calc(33% - 0.66rem);
+    @media screen and (max-width: 1024px) {
+      width: calc(50% - 0.5rem);
+    }
+    @media screen and (max-width: 600px) {
+      width: 100%;
+    }
+  }
+}

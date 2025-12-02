@@ -1,30 +1,22 @@
 {
   "name": "jotai-idb",
-  "version": "0.0.3",
-  "description": "A typed, reactive IndexedDB state manager powered by Jotai. Persist and sync your application state with minimal boilerplate, full type safety, and Jotai's atom-based architecture.",
-  "type": "module",
-  "main": "./dist/index.cjs",
-  "types": "./dist/index.d.ts",
-  "exports": {
-    ".": {
-      "types": "./dist/index.d.ts",
-      "import": "./dist/index.js",
-      "require": "./dist/index.cjs"
-    }
-  },
-  "files": [
-    "dist"
+  "workspaces": [
+    "lib",
+    "example"
   ],
   "scripts": {
-    "build": "rslib build",
+    "build": "bun run build:lib && bun run build:example",
+    "build:lib": "bun --cwd lib build",
+    "build:example": "bun --cwd example build",
     "check": "biome check . && bun run format:md:check",
-    "check:fix": "biome check . --fix && bun run format",
-    "dev": "rslib build --watch",
+    "check:fix": "biome check . --fix && bun run format:md",
+    "dev": "bun run --filter '*' dev",
     "format": "bun run format:rest && bun run format:md",
     "format:md": "mdfmt \"**/*.md\" --write",
     "format:md:check": "mdfmt \"**/*.md\" --check",
     "format:rest": "biome format --write",
-    "test": "rstest",
+    "test": "bun --cwd lib test",
+    "typecheck": "bun run --filter '*' typecheck",
     "prepare": "husky"
   },
   "devDependencies": {
@@ -32,50 +24,18 @@
     "@commitlint/cli": "^20.1.0",
     "@commitlint/config-conventional": "^20.0.0",
     "@rewdy/md-formatter": "^0.4.0",
-    "@rslib/core": "^0.18.2",
-    "@rstest/core": "^0.6.6",
-    "@types/node": "^24.10.1",
-    "fake-indexeddb": "^6.2.5",
+    "@semantic-release/changelog": "6.0.3",
+    "@semantic-release/git": "10.0.1",
     "husky": "^9.1.7",
     "jotai": "^2.15.1",
-    "react": "^19.2.0",
+    "semantic-release": "25.0.2",
     "typescript": "^5.9.3"
   },
-  "peerDependencies": {
-    "jotai": ">=2.0.0",
-    "react": ">=18.0.0"
-  },
-  "peerDependencyMeta": {
-    "react": {
-      "optional": false
-    }
-  },
-  "repository": {
-    "type": "git",
-    "url": "git+https://github.com/rewdy/jotai-idb.git"
-  },
-  "bugs": {
-    "url": "https://github.com/rewdy/jotai-idb/issues"
-  },
-  "homepage": "https://github.com/rewdy/jotai-idb#readme",
-  "keywords": [
-    "jotai",
-    "indexeddb",
-    "state-management",
-    "reactive",
-    "typescript",
-    "react",
-    "storage",
-    "database"
-  ],
-  "publishConfig": {
-    "provenance": true
-  },
-  "author": "Andrew Meyer",
   "commitlint": {
     "extends": [
       "@commitlint/config-conventional"
     ]
   },
+  "private": true,
   "license": "MIT"
 }
