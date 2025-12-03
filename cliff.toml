@@ -1,0 +1,27 @@
+# Configuration for git-cliff release notes generator
+# Parses conventional commits and generates structured release notes
+
+[changelog]
+# Changelog header
+header = ""
+# Template for the entire changelog
+body = """
+{% for group, commits in commits | group_by(attribute="group") %}
+    {{ group }}
+    {% for commit in commits %}
+        - {% if commit.breaking %}[BREAKING] {% endif %}{{ commit.message | upper_first }}
+    {%- endfor %}
+{% endfor %}
+"""
+# Footer template
+footer = ""
+# Trim whitespace
+trim = true
+
+[git]
+# Regular expression for parsing conventional commits
+conventional_commits = true
+# Filter commits
+filter_commits = false
+# Sort commits
+sort_commits = "oldest"

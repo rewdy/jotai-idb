@@ -28,6 +28,13 @@ jobs:
         with:
           node-version: "22"
           registry-url: "https://registry.npmjs.org"
+      
+      # Ensure npm 11.5.1 or later is installed
+      - name: Update npm (required for trusted publishing)
+        run: |
+          npm --version
+          npm install -g npm@latest
+          npm --version
 
       - name: Setup Bun
         uses: oven-sh/setup-bun@v1
@@ -42,7 +49,7 @@ jobs:
 
       - name: Publish to npm
         working-directory: ./lib
-        run: npm publish --provenance
+        run: npm publish
 
   create-release:
     if: startsWith(github.ref, 'refs/tags/v')
@@ -51,8 +58,17 @@ jobs:
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Generate release notes from conventional commits
+        id: release-notes
+        uses: orhun/git-cliff-action@v3
+        with:
+          config: cliff.toml
+          args: --latest --strip header
 
       - name: Create GitHub Release
         uses: softprops/action-gh-release@v1
         with:
-          generate_release_notes: true
+          body: ${{ steps.release-notes.outputs.content }}
