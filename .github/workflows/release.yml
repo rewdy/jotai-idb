@@ -4,79 +4,24 @@ on:
   push:
     branches:
       - main
+    tags:
+      - "v*"
 
 permissions:
   contents: write
-  issues: write
-  pull-requests: write
   id-token: write
 
 jobs:
   test:
     uses: ./.github/workflows/_test-and-build.yml
 
-  release:
-    needs: test
-    runs-on: ubuntu-latest
-
-    outputs:
-      released: ${{ steps.check.outputs.released }}
-      version: ${{ steps.check.outputs.version }}
-
-    steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
-
-      - name: Get latest tag before release
-        id: before
-        run: echo "tag=$(git describe --tags --abbrev=0 2>/dev/null || echo '')" >> $GITHUB_OUTPUT
-
-      - name: Setup Node.js
-        uses: actions/setup-node@v4
-        with:
-          node-version: "22"
-
-      - name: Setup Bun
-        uses: oven-sh/setup-bun@v1
-
-      - name: Install dependencies
-        run: bun install
-      
-      - name: Build library
-        run: bun run build:lib
-
-      - name: Run semantic-release
-        env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-        run: bun run release
-
-      - name: Check if new version was released
-        id: check
-        run: |
-          git fetch --tags
-          LATEST_TAG=$(git describe --tags --abbrev=0 2>/dev/null || echo '')
-          BEFORE_TAG="${{ steps.before.outputs.tag }}"
-          if [ "$LATEST_TAG" != "$BEFORE_TAG" ] && [ -n "$LATEST_TAG" ]; then
-            echo "released=true" >> $GITHUB_OUTPUT
-            echo "version=${LATEST_TAG#v}" >> $GITHUB_OUTPUT
-            echo "New release: $LATEST_TAG"
-          else
-            echo "released=false" >> $GITHUB_OUTPUT
-            echo "No new release"
-          fi
-
   publish:
-    needs: release
-    if: needs.release.outputs.released == 'true'
+    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
       - name: Checkout code
         uses: actions/checkout@v4
-        with:
-          ref: v${{ needs.release.outputs.version }}
 
       - name: Setup Node.js
         uses: actions/setup-node@v4
@@ -97,11 +42,17 @@ jobs:
 
       - name: Publish to npm
         working-directory: ./lib
-        run: |
-          bun pm pack
-          TARBALL=$(ls *.tgz | head -1)
-          if [ -z "$TARBALL" ]; then
-            echo "No tarball found!"
-            exit 1
-          fi
-          npm publish "$TARBALL" --provenance
+        run: npm publish --provenance
+
+  create-release:
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v1
+        with:
+          generate_release_notes: true
