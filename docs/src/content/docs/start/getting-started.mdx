@@ -1,0 +1,281 @@
+---
+title: 👻 Getting Started
+description: Install jotai-idb and set up your first database.
+---
+
+## Installation
+
+Install jotai-idb and its peer dependencies:
+
+```bash
+npm install jotai-idb jotai
+# or
+pnpm add jotai-idb jotai
+# or
+bun add jotai-idb jotai
+```
+
+jotai-idb relies on the following packages:
+- **Jotai** - for atom-based state management
+- **React** - as a peer dependency of Jotai
+
+## Basic Setup
+
+### 1. Determine Your Record Type
+
+Start by defining the shape of data you want to store. For example, this could be a TypeScript type:
+
+```typescript
+type Note = {
+  id: string;
+  title: string;
+  content: string;
+  createdAt: Date;
+  tags?: string[];
+};
+```
+
+Or depending on how you are managing your data, it could be something like an inferred type from a [Zod](https://github.com/colinhacks/zod) schema:
+
+```typescript
+import { z } from "zod";
+
+// Define your Zod schema...
+const NoteSchema = z.object({
+  id: z.string().default(() => crypto.randomUUID()),
+  title: z.string(),
+  content: z.string(),
+  createdAt: z.date().default(() => new Date()),
+  tags: z.array(z.string()).optional(),
+});
+
+// Infer the TypeScript type. Voila!
+type Note = z.infer<typeof NoteSchema>;
+```
+
+### 2. Create a Database Instance
+
+Create a new `JotaiIDB` instance with your configuration. You'll need to set the <code>keyPath</code> properly to match your record type:
+
+```typescript
+import { JotaiIDB } from "jotai-idb";
+
+const db = new JotaiIDB<Note>({
+  dbName: "my-database",
+  version: 1,
+  store: {
+    name: "notes",
+    keyPath: "id",
+  },
+});
+```
+
+### 3. Use in React Components
+
+jotai-idb works with standard Jotai hooks in any React component:
+
+```tsx
+import { useAtomValue, useSetAtom } from "jotai";
+
+export function NotesApp() {
+  // Read all notes
+  const notes = useAtomValue(db.items);
+
+  // Set up for writing
+  const addNote = useSetAtom(db.setter);
+
+  return (
+    <div>
+      {notes?.map((note) => (
+        <div key={note.id}>{note.title}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## Reading Data
+
+jotai-idb provides several atoms for reading data:
+
+```typescript
+// All records
+const allNotes = useAtomValue(db.items);
+
+// All primary keys
+const noteIds = useAtomValue(db.keys);
+
+// All [id, value] pairs
+const entries = useAtomValue(db.entries);
+
+// Single record by ID
+const note = useAtomValue(db.item("note-1"));
+
+// Range query (requires indexes)
+const recentNotes = useAtomValue(
+  db.range({
+    index: "byDate",
+    lower: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+  })
+);
+```
+
+## Writing Data
+
+Use the `db.set` atom directly or the convenience `db.setter` atom:
+
+**Using `db.set`**:
+
+```typescript
+// Using db.set
+const saveItem = useSetAtom(db.set);
+const deleteItem = useSetAtom(db.set);
+
+await saveItem("note-1", // note id 
+  {
+    id: "note-1",
+    title: "My Note",
+    content: "...",
+    createdAt: new Date(),
+  }
+);
+```
+
+Or **using `db.setter`**:
+
+```typescript
+const dispatch = useSetAtom(db.setter);
+
+// Add new data
+await dispatch({
+  type: "put",
+  value: {
+    id: "note-1",
+    title: "My Note",
+    content: "...",
+    createdAt: new Date(),
+  },
+});
+
+// Delete (see other ways to delete below)
+await dispatch({
+  type: "delete",
+  id: "note-1",
+});
+```
+
+Alternatively, if you have a read/write view for a single item, you **will want `db.item(id)`** which returns a read/write atom for that item. Very Jotai; very React:
+
+```typescript
+const [note, setNote] = useAtom(db.item("note-1"));
+
+const [title, setTitle] = useState(note?.title || "");
+const [content, setContent] = useState(note?.content || "");
+
+// Update note
+const saveItem = () => {
+  setNote({
+    ...note,
+    title,
+    content,
+  });
+}
+
+return (
+  <div>
+    <input
+      value={title}
+      onChange={(e) => setTitle(e.target.value)}
+    />
+    <textarea
+      value={content}
+      onChange={(e) => setContent(e.target.value)}
+    />
+    <button onClick={saveItem}>Save Note</button>
+  </div>
+);
+```
+
+---
+
+## Handling Suspense
+
+⚠️ Since database operations are asynchronous, *all jotai-idb atoms are async*. **You will need to handle this in your components!** There are (conceptually) two ways to do this.
+
+### 1. Wrap your components with Suspense:
+
+While this is trivial in theory, in practice you may find yourself needing to fine-tune where your suspense boundaries are placed so that you can control your loading states effectively.
+
+Simple example:
+
+```typescript
+import { Suspense } from "react";
+
+export function App() {
+  return (
+    <Suspense fallback={<div>Loading...</div>}>
+      <NotesApp />
+    </Suspense>
+  );
+}
+```
+
+### 2. Use `jotai/utils`'s `loadable` helper to interact with state in a non-suspense way:
+
+Jotai provides a `loadable` utility that lets you read async atoms without triggering suspense. Instead, you get a loadable object that indicates loading/error states.
+
+Read more about Jotai async patterns in the [Jotai documentation](https://jotai.org/docs/utilities/async).
+
+```tsx
+import { loadable } from "jotai/utils";
+
+const loadableNotesAtom = loadable(db.items);
+
+export function NotesApp() {
+  const loadableNotes = useAtomValue(loadableNotesAtom);
+
+  if (loadableNotes.state === "loading") {
+    return <div>Loading...</div>;
+  }
+
+  if (loadableNotes.state === "hasError") {
+    return <div>Error: {loadableNotes.error.message}</div>;
+  }
+
+  return (
+    <div>
+      {loadableNotes.data?.map((note) => (
+        <div key={note.id}>{note.title}</div>
+      ))}
+    </div>
+  );
+}
+```
+
+---
+
+## Understanding Initialization
+
+jotai-idb uses **lazy initialization**. The database opens automatically on first read:
+
+```typescript
+// This triggers database opening
+const notes = useAtomValue(db.items);
+```
+
+The first access to any read atom (like `db.items`) automatically:
+1. Opens the IndexedDB database
+2. Creates the object store if needed
+3. Loads all existing data into cache
+4. Returns the cached data
+
+---
+
+## Next Steps
+
+- **[Configuration Guide](/jotai-idb/start/configuration-guide/)** - Customize your database setup
+- **[Examples](/jotai-idb/guides/basic-crud/)** - Learn practical patterns with complete examples
+- **[API Reference](/jotai-idb/reference/jotaidb/)** - Full API documentation
+- **[Range Queries](/jotai-idb/guides/range-queries/)** - Advanced querying patterns

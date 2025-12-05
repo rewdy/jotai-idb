@@ -1,0 +1,356 @@
+---
+title: JotaiIDB Class
+description: Complete reference for the JotaiIDB class.
+---
+
+The main class for creating a typed, reactive IndexedDB instance.
+
+## Constructor
+
+```typescript
+constructor(config: JotaiIDBConfig<T>)
+```
+
+Creates a new JotaiIDB instance without blocking. The database opens lazily on first read.
+
+### Parameters
+
+**`config`** - Configuration object for the database
+
+```typescript
+interface JotaiIDBConfig<T extends RecordType = RecordType> {
+  /**
+   * Name of the IndexedDB database
+   */
+  dbName: string;
+
+  /**
+   * Schema version for migrations
+   */
+  version: number;
+
+  /**
+   * Object store definition
+   */
+  store: StoreDefinition;
+
+  /**
+   * Initial data to populate the store on first creation.
+   * Only added during onupgradeneeded event.
+   * Keyed by record ID.
+   * @optional
+   */
+  initialData?: Record<string, T>;
+}
+```
+
+### Example
+
+```typescript
+import { JotaiIDB } from "jotai-idb";
+
+type Note = {
+  id: string;
+  title: string;
+  content: string;
+};
+
+const db = new JotaiIDB<Note>({
+  dbName: "notes-app",
+  version: 1,
+  store: {
+    name: "notes",
+    keyPath: "id",
+    indexes: [
+      { name: "byTitle", keyPath: "title" }
+    ],
+  },
+  initialData: {
+    "welcome": {
+      id: "welcome",
+      title: "Welcome",
+      content: "Hello!",
+    },
+  },
+});
+```
+
+## Atoms
+
+### `items`
+
+Read atom for all records in the store.
+
+```typescript
+items: Atom<T[] | undefined>
+```
+
+- Returns `undefined` during lazy initialization (triggers Suspense)
+- Returns an array of all records once loaded
+- Auto-updates after write operations
+
+**Usage:**
+
+```typescript
+const notes = useAtomValue(db.items);
+```
+
+### `keys`
+
+Read atom for all primary keys.
+
+```typescript
+keys: Atom<string[]>
+```
+
+Depends on `items`. More efficient than extracting keys from full records.
+
+**Usage:**
+
+```typescript
+const keys = useAtomValue(db.keys);
+```
+
+### `entries`
+
+Read atom for all `[id, value]` pairs.
+
+```typescript
+entries: Atom<Array<[string, T]>>
+```
+
+Depends on `items`.
+
+**Usage:**
+
+```typescript
+const entries = useAtomValue(db.entries);
+entries?.forEach(([id, record]) => {
+  console.log(id, record);
+});
+```
+
+### `item(id)`
+
+Read atom family for a single record by ID.
+
+```typescript
+item: (id: string) => Atom<T | undefined>
+```
+
+- Returns `undefined` if the record doesn't exist
+- Does not trigger Suspense (synchronous lookup)
+- Uses atomFamily caching — same ID always returns the same atom instance
+
+**Usage:**
+
+```typescript
+const note = useAtomValue(db.item("note-123"));
+```
+
+### `range(query)`
+
+Read atom family for range queries.
+
+```typescript
+range: (query: RangeQuery) => Atom<Array<[string, T]>>
+```
+
+- Requires an index on the queried field
+- Returns `[id, value]` pairs
+- Uses atomFamily caching with deep equality comparison
+- Suspends until initialized
+
+**Usage:**
+
+```typescript
+const results = useAtomValue(
+  db.range({
+    index: "byTitle",
+    lower: "A",
+    upper: "Z",
+  })
+);
+```
+
+### `set`
+
+Write atom for setting a single record.
+
+```typescript
+set: Atom<null, (id: string, value: T) => Promise<void>>
+```
+
+Updates cache optimistically, then persists to IndexedDB.
+
+**Usage:**
+
+```typescript
+const dispatch = useSetAtom(db.set);
+await dispatch("note-123", { ...note, title: "Updated" });
+```
+
+### `delete`
+
+Write atom for deleting a single record.
+
+```typescript
+delete: Atom<null, (id: string) => Promise<void>>
+```
+
+Removes from cache optimistically, then persists deletion to IndexedDB.
+
+**Usage:**
+
+```typescript
+const delete = useSetAtom(db.delete);
+await delete("note-123");
+```
+
+### `setter`
+
+Convenience write atom supporting both put and delete operations.
+
+```typescript
+setter: Atom<null, (action: SetterAction<T>) => Promise<void>>
+```
+
+Where `SetterAction<T>` is:
+
+```typescript
+type SetterAction<T extends RecordType> =
+  | { type: "put"; value: T }
+  | { type: "delete"; id: IDBValidKey };
+```
+
+**Usage:**
+
+```typescript
+const dispatch = useSetAtom(db.setter);
+
+// Put (add or update)
+await dispatch({
+  type: "put",
+  value: { id: "note-123", title: "Title", content: "..." },
+});
+
+// Delete
+await dispatch({
+  type: "delete",
+  id: "note-123",
+});
+```
+
+### `clear`
+
+Write atom for clearing all records from the store.
+
+```typescript
+clear: Atom<null, () => Promise<void>>
+```
+
+**Usage:**
+
+```typescript
+const clearAll = useSetAtom(db.clear);
+await clearAll();
+```
+
+### `isInitialized`
+
+Read atom indicating whether initialization is complete.
+
+```typescript
+isInitialized: Atom<boolean>
+```
+
+Returns `false` until the first read triggers initialization.
+
+**Usage:**
+
+```typescript
+const ready = useAtomValue(db.isInitialized);
+```
+
+### `suspendBeforeInit`
+
+Read atom that suspends until initialization is complete.
+
+```typescript
+suspendBeforeInit: Atom<void>
+```
+
+Use this to ensure the database is ready before rendering components.
+
+**Usage:**
+
+```typescript
+function RequiresInitialization() {
+  useAtomValue(db.suspendBeforeInit);
+  // Now safe to access db.item(), etc.
+  return <div>Initialized</div>;
+}
+```
+
+## Type Constraints
+
+The generic type parameter `T` must extend `RecordType`:
+
+```typescript
+interface RecordType {
+  id: string;
+  [key: string]: unknown;
+}
+```
+
+All records must have a string `id` field. This is used as the primary key.
+
+## Cache Invalidation
+
+After write operations, affected read atoms automatically re-evaluate:
+
+- **`items`** updates to reflect additions/deletions
+- **`keys`** updates to reflect key changes
+- **`entries`** updates to reflect changes
+- **`item(id)`** updates its cached value automatically
+- **Range queries** re-fetch on next read if the index is affected
+
+No manual cache invalidation needed.
+
+## Lazy Initialization
+
+The database opens automatically on first atom read. This means:
+
+1. No async initialization call required
+2. Zero overhead until first read
+3. Database opening happens in background
+4. Components using async atoms auto-suspend
+
+## Best Practices
+
+1. **Define indexes for fields you query** — range queries require indexes
+2. **Use `db.item(id)` for single records** — faster than filtering `items`
+3. **Use `db.keys` when you only need IDs** — avoids loading full records
+4. **Wrap components in Suspense** — for better UX during initialization
+5. **Type your records strictly** — leverage TypeScript for safety
+6. **Use composite indexes for multi-field queries** — more efficient than filtering
+
+## Error Handling
+
+All write operations return promises that can be rejected:
+
+```typescript
+try {
+  await dispatch({
+    type: "put",
+    value: newRecord,
+  });
+} catch (error) {
+  console.error("Failed to save:", error);
+}
+```
+
+## See Also
+
+- [Configuration](/jotai-idb/reference/configuration/) - Configuration reference
+- [RangeQuery](/jotai-idb/reference/range-queries/) - Range query options

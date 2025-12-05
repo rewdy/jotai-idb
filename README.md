@@ -2,6 +2,8 @@
 
 A typed, reactive IndexedDB state manager powered by [Jotai](https://jotai.org). Persist and sync your application state with minimal boilerplate, full type safety, and Jotai's atom-based architecture.
 
+NOTE: This library is very similar to (and learned a lot from) [jotai-minidb](https://github.com/11bit/jotai-minidb), but extends the concept to fully support IndexedDB indexes, range queries, and more complex data models.
+
 ## Table of Contents
 
 - [Installation](#installation)
@@ -235,10 +237,10 @@ function ItemDetail({ id }: { id: string }) {
 import { useSetAtom } from "jotai";
 
 function AddItem() {
-  const setSetter = useSetAtom(db.setter);
+  const dispatch = useSetAtom(db.setter);
   
   const handleAdd = async () => {
-    await setSetter({
+    await dispatch({
       type: "put",
       value: {
         id: "item-123",
@@ -256,10 +258,10 @@ function AddItem() {
 
 ```typescript
 function DeleteItem({ id }: { id: string }) {
-  const setSetter = useSetAtom(db.setter);
+  const dispatch = useSetAtom(db.setter);
   
   const handleDelete = async () => {
-    await setSetter({
+    await dispatch({
       type: "delete",
       id: id
     });
@@ -442,10 +444,10 @@ function NotesList() {
 }
 
 function NoteItem({ note }: { note: Note }) {
-  const setSetter = useSetAtom(db.setter);
+  const dispatch = useSetAtom(db.setter);
   
   const handleDelete = () => {
-    setSetter({ type: "delete", id: note.id });
+    dispatch({ type: "delete", id: note.id });
   };
   
   return (
@@ -459,13 +461,13 @@ function NoteItem({ note }: { note: Note }) {
 }
 
 function NoteForm() {
-  const setSetter = useSetAtom(db.setter);
+  const dispatch = useSetAtom(db.setter);
   
   const handleSubmit = async (e: React.FormEvent<HTMLFormElement>) => {
     e.preventDefault();
     const formData = new FormData(e.currentTarget);
     
-    await setSetter({
+    await dispatch({
       type: "put",
       value: {
         id: `note-${Date.now()}`,
@@ -558,13 +560,13 @@ const results = useAtomValue(db.range({
 Write-through atom for put and delete operations. Use with `useSetAtom()`.
 
 ```typescript
-const setSetter = useSetAtom(db.setter);
+const dispatch = useSetAtom(db.setter);
 
 // Put
-await setSetter({ type: "put", value: myRecord });
+await dispatch({ type: "put", value: myRecord });
 
 // Delete
-await setSetter({ type: "delete", id: "record-123" });
+await dispatch({ type: "delete", id: "record-123" });
 ```
 
 ## Type Reference
@@ -757,12 +759,12 @@ function Component() {
 For multiple writes, use Promise.all:
 
 ```typescript
-const setSetter = useSetAtom(db.setter);
+const dispatch = useSetAtom(db.setter);
 
 await Promise.all([
-  setSetter({ type: "put", value: record1 }),
-  setSetter({ type: "put", value: record2 }),
-  setSetter({ type: "put", value: record3 })
+  dispatch({ type: "put", value: record1 }),
+  dispatch({ type: "put", value: record2 }),
+  dispatch({ type: "put", value: record3 })
 ]);
 ```
 

@@ -1,0 +1,413 @@
+---
+title: Range Queries
+description: Reference for RangeQuery interface and range query options.
+---
+
+## RangeQuery
+
+Specifies parameters for efficient range queries on indexes.
+
+```typescript
+interface RangeQuery {
+  index: string;
+  lower?: IDBValidKey;
+  upper?: IDBValidKey;
+  lowerOpen?: boolean;
+  upperOpen?: boolean;
+  reverse?: boolean;
+}
+```
+
+## Properties
+
+### `index`
+
+Name of the index to query.
+
+```typescript
+index: string
+```
+
+**Requirements:**
+- Must match an index name defined in `store.indexes`
+- Index must exist (or query will fail)
+
+**Example:**
+
+```typescript
+{
+  index: "byDate",
+}
+```
+
+### `lower`
+
+Lower bound for the range (inclusive by default).
+
+```typescript
+lower?: IDBValidKey
+```
+
+**Types:**
+- `string` - for string fields
+- `number` - for numeric fields
+- `Date` - for date fields
+- `IDBValidKey[]` - for composite indexes
+
+**Examples:**
+
+```typescript
+// Single field
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+}
+
+// Composite index - exact match on first field
+{
+  index: "byTypeAndStatus",
+  lower: ["active"],  // Match all "active" items
+}
+
+// Composite index - range on both fields
+{
+  index: "byTypeAndStatus",
+  lower: ["active", "pending"],
+}
+```
+
+**Behavior:**
+- If omitted, no lower bound
+- By default, the lower bound is inclusive (=)
+- Use `lowerOpen: true` to make it exclusive (>)
+
+### `upper`
+
+Upper bound for the range (inclusive by default).
+
+```typescript
+upper?: IDBValidKey
+```
+
+**Types:**
+Same as `lower`.
+
+**Examples:**
+
+```typescript
+{
+  index: "byDate",
+  upper: new Date("2024-12-31"),
+}
+
+{
+  index: "byTypeAndStatus",
+  upper: ["active", "completed"],
+}
+```
+
+**Behavior:**
+- If omitted, no upper bound
+- By default, the upper bound is inclusive (=)
+- Use `upperOpen: true` to make it exclusive (&lt;)
+
+### `lowerOpen`
+
+Make the lower bound exclusive (greater than) instead of inclusive (greater than or equal).
+
+```typescript
+lowerOpen?: boolean  // Default: false
+```
+
+**Examples:**
+
+```typescript
+// Inclusive (default): greater than or equal
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  lowerOpen: false,  // Includes Jan 1
+}
+
+// Exclusive: greater than
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  lowerOpen: true,  // Excludes Jan 1
+}
+```
+
+### `upperOpen`
+
+Make the upper bound exclusive (less than) instead of inclusive (less than or equal).
+
+```typescript
+upperOpen?: boolean  // Default: false
+```
+
+**Examples:**
+
+```typescript
+// Inclusive (default): less than or equal
+{
+  index: "byDate",
+  upper: new Date("2024-12-31"),
+  upperOpen: false,  // Includes Dec 31
+}
+
+// Exclusive: less than
+{
+  index: "byDate",
+  upper: new Date("2024-12-31"),
+  upperOpen: true,  // Excludes Dec 31
+}
+```
+
+### `reverse`
+
+Retrieve results in descending order.
+
+```typescript
+reverse?: boolean  // Default: false
+```
+
+**Examples:**
+
+```typescript
+// Ascending (default)
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  reverse: false,  // Oldest first
+}
+
+// Descending
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  reverse: true,  // Newest first
+}
+```
+
+## Query Result Format
+
+Range queries return `[id, value]` pairs:
+
+```typescript
+type RangeQueryResult<T> = Array<[string, T]>
+```
+
+**Example:**
+
+```typescript
+const results = useAtomValue(
+  db.range({
+    index: "byDate",
+    lower: new Date("2024-01-01"),
+  })
+);
+
+// results is Array<[string, Article]>
+// [0] = id: string
+// [1] = value: Article
+
+results?.forEach(([id, article]) => {
+  console.log(`${id}: ${article.title}`);
+});
+```
+
+## Common Patterns
+
+### Exact Match on Single Field
+
+```typescript
+{
+  index: "byStatus",
+  lower: "active",
+  upper: "active",
+}
+```
+
+### All Records (No Bounds)
+
+```typescript
+{
+  index: "byDate",
+  // No lower or upper
+}
+```
+
+### Greater Than or Equal
+
+```typescript
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  // No upper bound
+}
+```
+
+### Less Than or Equal
+
+```typescript
+{
+  index: "byDate",
+  upper: new Date("2024-12-31"),
+  // No lower bound
+}
+```
+
+### Date Range (Inclusive)
+
+```typescript
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  upper: new Date("2024-12-31"),
+}
+```
+
+### String Prefix (Using UNICODE_MAX)
+
+```typescript
+import { UNICODE_MAX } from "jotai-idb";
+
+{
+  index: "byName",
+  lower: "John",
+  upper: `John${UNICODE_MAX}`,
+}
+```
+
+### Composite - Type and Range
+
+```typescript
+{
+  index: "byTypeAndDate",
+  lower: ["article", new Date("2024-01-01")],
+  upper: ["article", new Date("2024-12-31")],
+}
+```
+
+### Composite - Exact Type, Any Date
+
+```typescript
+{
+  index: "byTypeAndDate",
+  lower: ["article"],
+  // Matches all articles regardless of date
+}
+```
+
+### Reverse Order
+
+```typescript
+{
+  index: "byDate",
+  reverse: true,  // Newest first
+}
+```
+
+### Exclusive Bounds
+
+```typescript
+{
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  upper: new Date("2024-12-31"),
+  lowerOpen: true,  // Exclude Jan 1
+  upperOpen: true,  // Exclude Dec 31
+}
+```
+
+## Usage in Components
+
+### Basic Query
+
+```typescript
+function RecentArticles() {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const articles = useAtomValue(
+    db.range({
+      index: "byDate",
+      lower: weekAgo,
+      reverse: true,
+    })
+  );
+
+  return articles?.map(([id, article]) => (
+    <div key={id}>{article.title}</div>
+  ));
+}
+```
+
+### Parameterized Query
+
+```typescript
+function ArticlesInDateRange({
+  from,
+  to,
+}: {
+  from: Date;
+  to: Date;
+}) {
+  const articles = useAtomValue(
+    db.range({
+      index: "byDate",
+      lower: from,
+      upper: to,
+    })
+  );
+
+  return articles?.map(([id, article]) => (
+    <div key={id}>{article.title}</div>
+  ));
+}
+```
+
+### With Filtering
+
+```typescript
+function ActiveArticles() {
+  const articles = useAtomValue(
+    db.range({
+      index: "byDate",
+    })
+  );
+
+  const active = articles
+    ?.filter((item): item is [string, Article] => !item[1].archived)
+    .map(([id, article]) => (
+      <div key={id}>{article.title}</div>
+    ));
+
+  return active;
+}
+```
+
+## IDBValidKey Type
+
+Valid key types for IndexedDB:
+
+```typescript
+type IDBValidKey =
+  | string
+  | number
+  | Date
+  | ArrayBufferView
+  | IDBValidKey[]
+```
+
+This includes:
+- **Strings** - most common
+- **Numbers** - for numeric IDs
+- **Dates** - for timestamps
+- **ArrayBufferView** - binary data
+- **Arrays** - for composite keys
+
+## See Also
+
+- [Range Queries Guide](/jotai-idb/guides/range-queries/) - Usage patterns and examples
+- [Composite Indexes](/jotai-idb/guides/composite-indexes/) - Multi-field queries
+- [UNICODE_MAX](/jotai-idb/reference/exports/) - String prefix helper

@@ -1,0 +1,294 @@
+---
+title: Exports
+description: Reference for all exports from jotai-idb.
+---
+
+## Classes
+
+### JotaiIDB
+
+Main class for managing IndexedDB with Jotai atoms.
+
+```typescript
+class JotaiIDB<T extends RecordType> {
+  constructor(config: JotaiIDBConfig<T>);
+
+  // Read atoms
+  items: Atom<T[] | undefined>;
+  keys: Atom<string[]>;
+  entries: Atom<Array<[string, T]>>;
+  item: (id: string) => Atom<T | undefined>;
+  range: (query: RangeQuery) => Atom<Array<[string, T]>>;
+
+  // Write atoms
+  set: Atom<null, (id: string, value: T) => Promise<void>>;
+  setter: Atom<null, (action: SetterAction<T>) => Promise<void>>;
+  delete: Atom<null, (id: string) => Promise<void>>;
+  clear: Atom<null, () => Promise<void>>;
+
+  // Status atoms
+  isInitialized: Atom<boolean>;
+  suspendBeforeInit: Atom<void>;
+}
+```
+
+**Example:**
+
+```typescript
+import { JotaiIDB } from "jotai-idb";
+
+type Article = {
+  id: string;
+  title: string;
+  content: string;
+};
+
+const db = new JotaiIDB<Article>({
+  dbName: "blog",
+  version: 1,
+  store: { name: "articles", keyPath: "id" },
+});
+```
+
+See [JotaiIDB Reference](/jotai-idb/reference/jotaidb/) for complete documentation.
+
+## Constants
+
+### UNICODE_MAX
+
+The maximum Unicode character (U+FFFF). Used for creating upper bounds in range queries with string prefixes. This is exported as a courtesy, but you can of course just use the string literal directly.
+
+```typescript
+const UNICODE_MAX: string = "\uffff"
+```
+
+**Usage:**
+
+```typescript
+import { UNICODE_MAX } from "jotai-idb";
+
+const results = useAtomValue(
+  db.range({
+    index: "byName",
+    lower: "John",
+    upper: `John${UNICODE_MAX}`,  // All names starting with "John"
+  })
+);
+```
+
+**Why it's useful:**
+
+In IndexedDB, you can't match string prefixes directly. Instead, you create a range from the prefix to the prefix + UNICODE_MAX:
+
+```typescript
+// Get all articles starting with "React"
+{
+  lower: "React ",
+  upper: `React ${UNICODE_MAX}`,
+}
+
+// Matches:
+// - "React Tutorial"
+// - "React vs Vue"
+// - "React"
+// - "React "
+
+// Does not match:
+// - "Vue React"  (doesn't start with "React")
+// - "python"
+```
+
+## Types
+
+*The following types are exported for your convenience when working with jotai-idb:*
+
+### RecordType
+
+Base interface for all stored records.
+
+```typescript
+interface RecordType {
+  id: string;
+  [key: string]: unknown;
+}
+```
+
+All records must have a string `id` field. See [Type Reference](/jotai-idb/reference/types/).
+
+### JotaiIDBConfig
+
+Configuration object for creating a database instance.
+
+```typescript
+interface JotaiIDBConfig<T extends RecordType = RecordType> {
+  dbName: string;
+  version: number;
+  store: StoreDefinition;
+  initialData?: Record<string, T>;
+}
+```
+
+See [Configuration Reference](/jotai-idb/reference/configuration/).
+
+### StoreDefinition
+
+Object store configuration.
+
+```typescript
+interface StoreDefinition {
+  name: string;
+  keyPath: string;
+  indexes?: IndexDefinition[];
+}
+```
+
+See [Configuration Reference](/jotai-idb/reference/configuration/).
+
+### IndexDefinition
+
+Single index configuration.
+
+```typescript
+interface IndexDefinition {
+  name: string;
+  keyPath: string | string[];
+  unique?: boolean;
+  multiEntry?: boolean;
+}
+```
+
+See [Index Definition Reference](/jotai-idb/reference/indexes/).
+
+### RangeQuery
+
+Range query parameters.
+
+```typescript
+interface RangeQuery {
+  index: string;
+  lower?: IDBValidKey;
+  upper?: IDBValidKey;
+  lowerOpen?: boolean;
+  upperOpen?: boolean;
+  reverse?: boolean;
+}
+```
+
+See [Range Queries Reference](/jotai-idb/reference/range-queries/).
+
+### RangeQueryResult
+
+Result type from range queries.
+
+```typescript
+type RangeQueryResult<T extends RecordType> = Array<[string, T]>
+```
+
+See [Type Reference](/jotai-idb/reference/types/).
+
+### SetterAction
+
+Action type for write operations.
+
+```typescript
+type SetterAction<T extends RecordType> =
+  | { type: "put"; value: T }
+  | { type: "delete"; id: IDBValidKey };
+```
+
+See [Type Reference](/jotai-idb/reference/types/).
+
+## Complete Export List
+
+| Export | Type | Purpose |
+|--------|------|---------|
+| `JotaiIDB` | class | Main database class |
+| `UNICODE_MAX` | const | Unicode max character for string ranges |
+| `RecordType` | interface | Base record interface |
+| `JotaiIDBConfig` | interface | Configuration type |
+| `StoreDefinition` | interface | Store configuration |
+| `IndexDefinition` | interface | Index configuration |
+| `RangeQuery` | interface | Range query type |
+| `RangeQueryResult` | type | Range query result |
+| `SetterAction` | type | Write action type |
+
+## Usage Examples
+
+### Basic Setup
+
+```typescript
+import { JotaiIDB } from "jotai-idb";
+import type { RecordType } from "jotai-idb";
+
+type Note = RecordType & {
+  title: string;
+  content: string;
+};
+
+const db = new JotaiIDB<Note>({
+  dbName: "notes",
+  version: 1,
+  store: { name: "notes", keyPath: "id" },
+});
+```
+
+### With Indexes
+
+```typescript
+import { JotaiIDB } from "jotai-idb";
+import type { IndexDefinition } from "jotai-idb";
+
+const indexes: IndexDefinition[] = [
+  { name: "byDate", keyPath: "createdAt" },
+  { name: "byTag", keyPath: "tags", multiEntry: true },
+];
+
+const db = new JotaiIDB({
+  dbName: "notes",
+  version: 1,
+  store: {
+    name: "notes",
+    keyPath: "id",
+    indexes,
+  },
+});
+```
+
+### With Range Queries
+
+```typescript
+import { UNICODE_MAX } from "jotai-idb";
+import type { RangeQuery } from "jotai-idb";
+
+const query: RangeQuery = {
+  index: "byTitle",
+  lower: "React",
+  upper: `React${UNICODE_MAX}`,
+};
+
+const results = useAtomValue(db.range(query));
+```
+
+### With Write Actions
+
+```typescript
+import type { SetterAction } from "jotai-idb";
+
+const action: SetterAction<Note> = {
+  type: "put",
+  value: {
+    id: "note-1",
+    title: "My Note",
+    content: "...",
+  },
+};
+
+const dispatch = useSetAtom(db.setter);
+await dispatch(action);
+```
+
+## See Also
+
+- [JotaiIDB Reference](/jotai-idb/reference/jotaidb/) - Class documentation
+- [Type Reference](/jotai-idb/reference/types/) - All types
+- [Configuration](/jotai-idb/reference/configuration/) - Config types

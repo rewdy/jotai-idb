@@ -100,7 +100,7 @@ This library leverages IndexedDB's powerful features:
 
 The `db.setter` atom implements a write-through pattern:
 
-1. User calls `setSetter({ type: "put", value: record })` or `setSetter({ type: "delete", id })`
+1. User calls `dispatch({ type: "put", value: record })` or `dispatch({ type: "delete", id })`
 2. The operation is executed against IndexedDB
 3. Cache invalidation occurs automatically via Jotai's atom dependency graph
 4. Related atoms (`items`, `keys`, `entries`, specific `item()`, affected `range()` results) re-evaluate on next read
@@ -144,7 +144,7 @@ const db = await new JotaiIDB<MyRecord>({ /* config */ }).init();
 // Types flow through the entire API
 const items = useAtomValue(db.items); // T[] 
 const item = useAtomValue(db.item("123")); // T | undefined
-const setSetter = useSetAtom(db.setter); // (action: SetterAction<T>) => Promise<void>
+const dispatch = useSetAtom(db.setter); // (action: SetterAction<T>) => Promise<void>
 ```
 
 ## Performance Considerations

@@ -2,16 +2,17 @@
   "name": "jotai-idb",
   "workspaces": [
     "lib",
-    "example"
+    "example",
+    "docs"
   ],
   "scripts": {
-    "build": "bun run build:lib && bun run build:example",
+    "build": "bun run build:lib && bun run build:rest",
     "build:lib": "bun --cwd lib build",
-    "build:example": "bun --cwd example build",
+    "build:rest": "bun run --filter '{example,docs}' build",
     "bump": "bun run scripts/bump-version.ts",
     "check": "biome check . && bun run format:md:check",
     "check:fix": "biome check . --fix && bun run format:md",
-    "dev": "bun run --filter '*' dev",
+    "dev": "bun build:lib && bun run --filter '*' dev",
     "format": "bun run format:rest && bun run format:md",
     "format:md": "mdfmt \"**/*.md\" --write",
     "format:md:check": "mdfmt \"**/*.md\" --check",

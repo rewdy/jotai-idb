@@ -43,7 +43,7 @@ function createThenable<K = void>() {
  *
  * // In React components:
  * const items = useAtomValue(db.items); // Suspends until ready
- * const setSetter = useSetAtom(db.setter);
+ * const dispatch = useSetAtom(db.setter);
  */
 export class JotaiIDB<T extends RecordType> {
   private storeName: string;
@@ -182,8 +182,8 @@ export class JotaiIDB<T extends RecordType> {
   });
 
   /**
-   * Convenience setter atom supporting put/delete actions.
-   * Maintains backward compatibility with previous API.
+   * Convenience setter atom supporting put/delete actions. Functions
+   * like a dispatch function for record modifications.
    */
   setter = atom(null, async (_get, set, action: SetterAction<T>) => {
     if (action.type === "put") {

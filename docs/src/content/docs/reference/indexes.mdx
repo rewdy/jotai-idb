@@ -1,0 +1,349 @@
+---
+title: Index Definition
+description: Reference for IndexDefinition interface.
+---
+
+## IndexDefinition
+
+Defines a single index on an object store.
+
+```typescript
+interface IndexDefinition {
+  name: string;
+  keyPath: string | string[];
+  unique?: boolean;
+  multiEntry?: boolean;
+}
+```
+
+## Properties
+
+### `name`
+
+Unique name for the index within the object store.
+
+```typescript
+name: string
+```
+
+**Requirements:**
+- Must be unique within the store
+- Used when querying with `db.range({ index: "name" })`
+- Cannot contain special characters in IndexedDB implementations
+- Cannot be changed after index creation without version increment
+
+**Example:**
+
+```typescript
+{
+  name: "byDate",
+}
+
+{
+  name: "byAuthorAndDate",
+}
+```
+
+### `keyPath`
+
+The field (or fields) to index.
+
+```typescript
+keyPath: string | string[]
+```
+
+**Single Field Index:**
+
+```typescript
+{
+  name: "byAuthor",
+  keyPath: "author",  // String: index on single field
+}
+```
+
+**Composite Index (Multiple Fields):**
+
+```typescript
+{
+  name: "byAuthorDate",
+  keyPath: ["author", "publishedAt"],  // Array: composite index
+}
+```
+
+**Requirements:**
+- Field must exist on your record type
+- Order matters for composite indexes (most-filtered field first)
+- Array fields require `multiEntry: true` to index individual elements
+
+### `unique`
+
+Whether values must be unique within the index.
+
+```typescript
+unique?: boolean  // Default: false
+```
+
+**Example:**
+
+```typescript
+{
+  name: "byEmail",
+  keyPath: "email",
+  unique: true,  // Only one record per email
+}
+```
+
+**When to use:**
+- Email addresses (one per user)
+- Usernames (one per user)
+- Unique identifiers beyond the primary key
+
+**Note:** If `unique: true` and you try to add a duplicate, the put operation will fail.
+
+### `multiEntry`
+
+For array fields, whether to index individual array elements.
+
+```typescript
+multiEntry?: boolean  // Default: false
+```
+
+**Without multiEntry** (default):
+
+```typescript
+type Article = {
+  id: string;
+  tags: string[];  // Array field
+};
+
+const db = new JotaiIDB<Article>({
+  dbName: "blog",
+  version: 1,
+  store: {
+    name: "articles",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byTag",
+        keyPath: "tags",
+        multiEntry: false,  // Doesn't work as expected
+      },
+    ],
+  },
+});
+
+// Query won't find articles by individual tag
+```
+
+**With multiEntry** (correct for arrays):
+
+```typescript
+{
+  name: "byTag",
+  keyPath: "tags",
+  multiEntry: true,  // Index each element separately
+}
+
+// Now queries work:
+const articles = useAtomValue(
+  db.range({
+    index: "byTag",
+    lower: "react",
+    upper: "react",
+  })
+);
+// Returns all articles with "react" in tags
+```
+
+## Common Index Patterns
+
+### Single Field
+
+```typescript
+type User = {
+  id: string;
+  email: string;
+  createdAt: Date;
+};
+
+const indexes = [
+  { name: "byEmail", keyPath: "email", unique: true },
+  { name: "byDate", keyPath: "createdAt" },
+];
+```
+
+### Composite (Two Fields)
+
+```typescript
+type Post = {
+  id: string;
+  userId: string;
+  createdAt: Date;
+  title: string;
+};
+
+const indexes = [
+  // Query posts by user and date
+  {
+    name: "byUserDate",
+    keyPath: ["userId", "createdAt"],
+  },
+];
+```
+
+### Composite with Type Discriminator
+
+```typescript
+type Item = Folder | File;
+
+type Folder = {
+  id: string;
+  type: "folder";
+  parentId: string;
+  name: string;
+};
+
+type File = {
+  id: string;
+  type: "file";
+  parentId: string;
+  name: string;
+};
+
+const indexes = [
+  // Query by type and parent
+  {
+    name: "byTypeAndParent",
+    keyPath: ["type", "parentId"],
+  },
+  // Query by type, parent, and name
+  {
+    name: "byTypeParentName",
+    keyPath: ["type", "parentId", "name"],
+  },
+];
+```
+
+### Array Field
+
+```typescript
+type Article = {
+  id: string;
+  title: string;
+  tags: string[];
+  keywords: string[];
+};
+
+const indexes = [
+  {
+    name: "byTag",
+    keyPath: "tags",
+    multiEntry: true,  // Essential for array fields
+  },
+  {
+    name: "byKeyword",
+    keyPath: "keywords",
+    multiEntry: true,
+  },
+];
+```
+
+### Three-Field Composite
+
+```typescript
+type Event = {
+  id: string;
+  type: string;
+  userId: string;
+  timestamp: Date;
+  action: string;
+};
+
+const indexes = [
+  {
+    name: "byTypeUserTime",
+    keyPath: ["type", "userId", "timestamp"],
+  },
+];
+
+// Usage:
+const events = useAtomValue(
+  db.range({
+    index: "byTypeUserTime",
+    lower: ["login", "user-123", dateFrom],
+    upper: ["login", "user-123", dateTo],
+  })
+);
+```
+
+## Query Performance
+
+IndexedDB performance tips:
+
+1. **Create indexes for fields you query** — without an index, queries scan all records
+2. **Put most-filtered field first** — in composite indexes, order matters
+3. **Use exact matches when possible** — `[value]` is faster than ranges
+4. **Avoid creating unnecessary indexes** — each index uses storage space
+
+## Index Naming
+
+Use descriptive, consistent names:
+
+```typescript
+// Good naming patterns:
+"byDate"              // Single field, simple
+"byUserDate"          // Composite, field order
+"byTypeAndStatus"     // Composite, descriptive
+"byTag"               // Array field
+
+// Less helpful:
+"index1"              // Not descriptive
+"byX"                 // Ambiguous
+"DateUserType"        // Inconsistent naming
+```
+
+## Changing Indexes
+
+To add, modify, or remove indexes, increment your database version:
+
+```typescript
+// Version 1
+{
+  version: 1,
+  store: {
+    indexes: [
+      { name: "byDate", keyPath: "createdAt" },
+    ],
+  },
+}
+
+// Version 2: Add new index
+{
+  version: 2,  // Increment version
+  store: {
+    indexes: [
+      { name: "byDate", keyPath: "createdAt" },
+      { name: "byAuthor", keyPath: "author" },  // New
+    ],
+  },
+}
+
+// Version 3: Remove old index, add new one
+{
+  version: 3,
+  store: {
+    indexes: [
+      { name: "byAuthor", keyPath: "author" },
+      { name: "byAuthorDate", keyPath: ["author", "createdAt"] },  // New
+    ],
+  },
+}
+```
+
+IndexedDB automatically handles index updates during the upgrade event.
+
+## See Also
+
+- [Configuration](/jotai-idb/reference/configuration/) - Store definition with indexes
+- [Range Queries](/jotai-idb/guides/range-queries/) - Using indexes to query data
+- [Composite Indexes](/jotai-idb/guides/composite-indexes/) - Multi-field index patterns

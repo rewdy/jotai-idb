@@ -2,8 +2,6 @@ name: Release
 
 on:
   push:
-    branches:
-      - main
     tags:
       - "v*"
 
@@ -16,7 +14,6 @@ jobs:
     uses: ./.github/workflows/_test-and-build.yml
 
   publish:
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
@@ -53,7 +50,6 @@ jobs:
         run: npm publish
 
   create-release:
-    if: startsWith(github.ref, 'refs/tags/v')
     runs-on: ubuntu-latest
 
     steps:
