@@ -1,0 +1,269 @@
+---
+title: Configuration Types
+description: Reference for JotaiIDB configuration interfaces.
+---
+
+## JotaiIDBConfig
+
+Complete configuration object for `new JotaiIDB(config)`.
+
+```typescript
+interface JotaiIDBConfig<T extends RecordType = RecordType> {
+  dbName: string;
+  version: number;
+  store: StoreDefinition;
+  initialData?: Record<string, T>;
+}
+```
+
+### Properties
+
+#### `dbName`
+
+Name of the IndexedDB database. Should be unique per application.
+
+```typescript
+dbName: string
+```
+
+**Requirements:**
+- Must be a valid string
+- Treated as case-sensitive
+- Different databases don't share data
+
+**Example:**
+
+```typescript
+{
+  dbName: "my-app",
+}
+```
+
+#### `version`
+
+Schema version number used for migrations.
+
+```typescript
+version: number
+```
+
+**Requirements:**
+- Must be a positive integer (1, 2, 3, etc.)
+- Increment when changing the store schema
+- IndexedDB triggers `onupgradeneeded` when version increases
+
+**Example:**
+
+```typescript
+{
+  version: 1,  // Initial version
+}
+
+// Later, when schema changes:
+{
+  version: 2,  // Migration occurs
+}
+```
+
+#### `store`
+
+Object store definition.
+
+```typescript
+store: StoreDefinition
+```
+
+See [StoreDefinition](#storedefinition) for details.
+
+#### `initialData`
+
+Optional initial data to populate the store on first creation.
+
+```typescript
+initialData?: Record<string, T>
+```
+
+**Requirements:**
+- Keys must match record ID values
+- Only added during `onupgradeneeded` (first creation)
+- Not re-added on subsequent opens
+- Database data takes precedence if records already exist
+
+**Example:**
+
+```typescript
+{
+  initialData: {
+    "user-123": {
+      id: "user-123",
+      name: "Alice",
+    },
+    "user-456": {
+      id: "user-456",
+      name: "Bob",
+    },
+  },
+}
+```
+
+## StoreDefinition
+
+Defines the object store structure.
+
+```typescript
+interface StoreDefinition {
+  name: string;
+  keyPath: string;
+  indexes?: IndexDefinition[];
+}
+```
+
+### Properties
+
+#### `name`
+
+Name of the object store. Must be unique within the database.
+
+```typescript
+name: string
+```
+
+**Example:**
+
+```typescript
+{
+  store: {
+    name: "users",
+  },
+}
+```
+
+#### `keyPath`
+
+The field name to use as the primary key.
+
+```typescript
+keyPath: string
+```
+
+**Requirements:**
+- Must be a property on your record type
+- Must contain string values (matching `RecordType.id`)
+- Cannot be changed after store creation without changing `dbName`
+
+**Example:**
+
+```typescript
+type User = {
+  id: string;
+  name: string;
+};
+
+{
+  store: {
+    keyPath: "id",  // Must match User.id type
+  },
+}
+```
+
+#### `indexes`
+
+Optional array of indexes for efficient queries.
+
+```typescript
+indexes?: IndexDefinition[]
+```
+
+See [IndexDefinition](/jotai-idb/reference/indexes) for details.
+
+## Complete Configuration Example
+
+```typescript
+import { JotaiIDB } from "jotai-idb";
+
+type Article = {
+  id: string;
+  title: string;
+  author: string;
+  publishedAt: Date;
+  tags: string[];
+  archived: boolean;
+};
+
+const config: JotaiIDBConfig<Article> = {
+  dbName: "blog-app",
+  version: 1,
+  store: {
+    name: "articles",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byAuthor",
+        keyPath: "author",
+      },
+      {
+        name: "byDate",
+        keyPath: "publishedAt",
+      },
+      {
+        name: "byTag",
+        keyPath: "tags",
+        multiEntry: true,
+      },
+      {
+        name: "byAuthorDate",
+        keyPath: ["author", "publishedAt"],
+      },
+    ],
+  },
+  initialData: {
+    "welcome": {
+      id: "welcome",
+      title: "Welcome to the Blog",
+      author: "Admin",
+      publishedAt: new Date(),
+      tags: ["welcome"],
+      archived: false,
+    },
+  },
+};
+
+const db = new JotaiIDB<Article>(config);
+```
+
+## Versioning Strategy
+
+Increment the version number when schema changes:
+
+```typescript
+// Version 1: Initial release
+{
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [{ name: "byType", keyPath: "type" }],
+  },
+}
+
+// Version 2: Add composite index
+{
+  dbName: "app",
+  version: 2,  // Incremented
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [
+      { name: "byType", keyPath: "type" },
+      { name: "byTypeAndDate", keyPath: ["type", "createdAt"] },  // New
+    ],
+  },
+}
+```
+
+## See Also
+
+- [IndexDefinition](/jotai-idb/reference/types/#indexdefinition) - Index configuration
+- [RecordType](/jotai-idb/reference/types/#recordtype) - Record interface
+- [JotaiIDB](/jotai-idb/reference/jotaidb/) - Main class reference

@@ -1,0 +1,232 @@
+---
+title: Type Reference
+description: Reference for all exported types and interfaces.
+---
+
+## RecordType
+
+Base interface that all stored records must extend.
+
+```typescript
+interface RecordType {
+  id: string;
+  [key: string]: unknown;
+}
+```
+
+**Requirements:**
+- Must have a `string` `id` field
+- The `id` field is used as the primary key
+- All other properties are optional
+
+**Example:**
+
+```typescript
+type User extends RecordType {
+  id: string;  // Required
+  name: string;
+  email: string;
+  createdAt: Date;
+  bio?: string;
+}
+
+const db = new JotaiIDB<User>({
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "users",
+    keyPath: "id",
+  },
+});
+```
+
+## SetterAction
+
+Action type for the `db.setter` atom.
+
+```typescript
+type SetterAction<T extends RecordType> =
+  | { type: "put"; value: T }
+  | { type: "delete"; id: IDBValidKey };
+```
+
+### Put Action
+
+Add or update a record.
+
+```typescript
+{
+  type: "put";
+  value: Record;
+}
+```
+
+**Example:**
+
+```typescript
+const updateItem = useSetAtom(db.setter);
+
+await updateItem({
+  type: "put",
+  value: {
+    id: "user-123",
+    name: "Alice",
+    email: "alice@example.com",
+  },
+});
+```
+
+### Delete Action
+
+Remove a record.
+
+```typescript
+{
+  type: "delete";
+  id: string | IDBValidKey;
+}
+```
+
+**Example:**
+
+```typescript
+const dispatch = useSetAtom(db.setter);
+
+await dispatch({
+  type: "delete",
+  id: "user-123",
+});
+```
+
+## RangeQuery
+
+Specifies parameters for range queries.
+
+```typescript
+interface RangeQuery {
+  index: string;
+  lower?: IDBValidKey;
+  upper?: IDBValidKey;
+  lowerOpen?: boolean;
+  upperOpen?: boolean;
+  reverse?: boolean;
+}
+```
+
+See [Range Queries Reference](/jotai-idb/reference/range-queries/) for complete documentation.
+
+## RangeQueryResult
+
+Result type from a range query.
+
+```typescript
+type RangeQueryResult<T extends RecordType> = Array<[string, T]>
+```
+
+Each result is a `[id, value]` pair.
+
+**Example:**
+
+```typescript
+const results = useAtomValue(
+  db.range({
+    index: "byDate",
+    lower: new Date("2024-01-01"),
+  })
+);
+
+// results: Array<[string, Article]>
+
+results?.forEach(([id, article]) => {
+  console.log(id);      // string
+  console.log(article); // Article
+});
+```
+
+## StoreDefinition
+
+Defines the object store structure.
+
+```typescript
+interface StoreDefinition {
+  name: string;
+  keyPath: string;
+  indexes?: IndexDefinition[];
+}
+```
+
+See [Configuration Reference](/jotai-idb/reference/configuration/) for complete documentation.
+
+## IndexDefinition
+
+Defines a single index.
+
+```typescript
+interface IndexDefinition {
+  name: string;
+  keyPath: string | string[];
+  unique?: boolean;
+  multiEntry?: boolean;
+}
+```
+
+See [Index Definition Reference](/jotai-idb/reference/indexes/) for complete documentation.
+
+## JotaiIDBConfig
+
+Complete configuration object.
+
+```typescript
+interface JotaiIDBConfig<T extends RecordType = RecordType> {
+  dbName: string;
+  version: number;
+  store: StoreDefinition;
+  initialData?: Record<string, T>;
+}
+```
+
+See [Configuration Reference](/jotai-idb/reference/configuration/) for complete documentation.
+
+## IDBValidKey
+
+Valid key types for IndexedDB operations.
+
+```typescript
+type IDBValidKey =
+  | string
+  | number
+  | Date
+  | ArrayBufferView
+  | IDBValidKey[]
+```
+
+Used for:
+- Primary keys
+- Index keys (including composite keys)
+- Range query bounds
+
+**Examples:**
+
+```typescript
+// String
+const id: IDBValidKey = "user-123";
+
+// Number
+const id: IDBValidKey = 12345;
+
+// Date
+const date: IDBValidKey = new Date();
+
+// Array (composite key)
+const compositeKey: IDBValidKey = ["user", 123];
+
+// Mixed array
+const mixed: IDBValidKey = ["type", "2024-01-01", "item"];
+```
+
+## See Also
+
+- [JotaiIDB Class](/jotai-idb/reference/jotaidb/) - Main class reference
+- [Configuration](/jotai-idb/reference/configuration/) - Config interface reference
+- [Indexes](/jotai-idb/reference/indexes/) - Index definition reference
+- [Range Queries](/jotai-idb/reference/range-queries/) - Query interface reference

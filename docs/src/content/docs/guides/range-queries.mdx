@@ -1,0 +1,328 @@
+---
+title: Range Queries
+description: Query data efficiently using indexes and range bounds.
+---
+
+Range queries allow you to efficiently retrieve subsets of your data by using IndexedDB indexes with lower and upper bounds. They're especially useful for time-based queries, alphabetical filtering, and large datasets.
+
+## Basic Range Query
+
+First, define an index on the field you want to query:
+
+```typescript
+type Article = {
+  id: string;
+  title: string;
+  publishedAt: Date;
+};
+
+const db = new JotaiIDB<Article>({
+  dbName: "blog",
+  version: 1,
+  store: {
+    name: "articles",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byDate",
+        keyPath: "publishedAt",
+      },
+    ],
+  },
+});
+```
+
+Then use the `range()` atom to query:
+
+```typescript
+import { useAtomValue } from "jotai";
+
+function RecentArticles() {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const recentArticles = useAtomValue(
+    db.range({
+      index: "byDate",
+      lower: weekAgo,
+    })
+  );
+
+  return recentArticles?.map(([id, article]) => (
+    <div key={id}>{article.title}</div>
+  ));
+}
+```
+
+## Query Options
+
+### Lower Bound
+
+Get all records greater than or equal to a value:
+
+```typescript
+const query = {
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+};
+
+const articles = useAtomValue(db.range(query));
+```
+
+### Upper Bound
+
+Get all records less than or equal to a value:
+
+```typescript
+const query = {
+  index: "byDate",
+  upper: new Date("2024-12-31"),
+};
+
+const articles = useAtomValue(db.range(query));
+```
+
+### Lower and Upper Bounds
+
+Get records within a range:
+
+```typescript
+const query = {
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  upper: new Date("2024-12-31"),
+};
+
+const articles = useAtomValue(db.range(query));
+```
+
+### Open Bounds
+
+Exclude the boundary values using `lowerOpen` and `upperOpen`:
+
+```typescript
+const query = {
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  upper: new Date("2024-12-31"),
+  lowerOpen: true,  // Exclude Jan 1
+  upperOpen: true,  // Exclude Dec 31
+};
+
+const articles = useAtomValue(db.range(query));
+```
+
+### Reverse Order
+
+Retrieve results in descending order:
+
+```typescript
+const query = {
+  index: "byDate",
+  lower: new Date("2024-01-01"),
+  reverse: true,  // Newest first
+};
+
+const articles = useAtomValue(db.range(query));
+```
+
+## Practical Examples
+
+### Time-Based Queries
+
+Get articles from the last 7 days:
+
+```typescript
+function RecentArticles() {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const recentArticles = useAtomValue(
+    db.range({
+      index: "byDate",
+      lower: weekAgo,
+      reverse: true,
+    })
+  );
+
+  return (
+    <ul>
+      {recentArticles?.map(([id, article]) => (
+        <li key={id}>{article.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+### Alphabetical Filtering
+
+Query by prefix using string bounds. The library exports `UNICODE_MAX` for this:
+
+```typescript
+import { UNICODE_MAX } from "jotai-idb";
+
+type User = {
+  id: string;
+  name: string;
+};
+
+const db = new JotaiIDB<User>({
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "users",
+    keyPath: "id",
+    indexes: [{ name: "byName", keyPath: "name" }],
+  },
+});
+
+function UsersStartingWith({ prefix }: { prefix: string }) {
+  const users = useAtomValue(
+    db.range({
+      index: "byName",
+      lower: prefix,
+      upper: `${prefix}${UNICODE_MAX}`,
+    })
+  );
+
+  return users?.map(([id, user]) => <div key={id}>{user.name}</div>);
+}
+```
+
+## Multiple Record Types
+
+You can store multiple record types in one object store and use range queries to filter by type. This requires careful index design:
+
+```typescript
+type Folder = {
+  id: string;
+  type: "folder";
+  name: string;
+};
+
+type Document = {
+  id: string;
+  type: "document";
+  folderId: string;
+  name: string;
+};
+
+type Item = Folder | Document;
+
+const db = new JotaiIDB<Item>({
+  dbName: "files",
+  version: 1,
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byType",
+        keyPath: "type",
+      },
+    ],
+  },
+});
+
+function FoldersOnly() {
+  const folders = useAtomValue(
+    db.range({
+      index: "byType",
+      lower: "folder",
+      upper: "folder",
+    })
+  );
+
+  return folders
+    ?.filter((item): item is [string, Folder] => item[1].type === "folder")
+    .map(([id, folder]) => <div key={id}>{folder.name}</div>);
+}
+```
+
+## Composite Indexes
+
+For more complex queries, use composite indexes with multiple fields:
+
+```typescript
+type Task = {
+  id: string;
+  type: "task";
+  projectId: string;
+  dueDate: Date;
+  completed: boolean;
+};
+
+const db = new JotaiIDB<Task>({
+  dbName: "tasks",
+  version: 1,
+  store: {
+    name: "tasks",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byProjectAndDate",
+        keyPath: ["type", "projectId", "dueDate"],
+      },
+    ],
+  },
+});
+
+// Get all tasks for a project due this week
+function ProjectTasksDueThisWeek({ projectId }: { projectId: string }) {
+  const today = new Date();
+  const weekFromNow = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+
+  const tasks = useAtomValue(
+    db.range({
+      index: "byProjectAndDate",
+      lower: ["task", projectId, today],
+      upper: ["task", projectId, weekFromNow],
+    })
+  );
+
+  return tasks?.map(([id, task]) => <div key={id}>{task.dueDate}</div>);
+}
+```
+
+## Using UNICODE_MAX
+
+The `UNICODE_MAX` helper makes it easy to query all items with a given prefix:
+
+```typescript
+import { UNICODE_MAX } from "jotai-idb";
+
+// Get all articles with the same prefix
+const articles = useAtomValue(
+  db.range({
+    index: "byTitle",
+    lower: "React ",
+    upper: `React ${UNICODE_MAX}`,
+  })
+);
+```
+
+## Query Result Format
+
+Range queries return results as `[id, value]` pairs:
+
+```typescript
+const results = useAtomValue(db.range({ index: "byDate" }));
+
+// results is Array<[string, Article]>
+results?.forEach(([id, article]) => {
+  console.log(id);        // "article-123"
+  console.log(article);   // { id: "article-123", title: "...", ... }
+});
+```
+
+## Performance Considerations
+
+1. **Create indexes for fields you query** — without an index, range queries scan all records
+2. **Use composite indexes for multi-field queries** — more efficient than multiple single indexes
+3. **Combine with filtering** — use range queries to narrow down, then filter in JavaScript if needed
+4. **Cache query atoms** — `db.range()` uses `atomFamily` with deep equality, so same query returns same atom
+
+## Next Steps
+
+- **[Composite Indexes](/jotai-idb/guides/composite-indexes/)** - Deep dive into multi-field queries
+- **[API Reference](/jotai-idb/reference/types/#rangequery)** - RangeQuery type reference
+- **[Basic CRUD](/jotai-idb/guides/basic-crud/)** - Learn read/write operations

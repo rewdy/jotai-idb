@@ -1,0 +1,332 @@
+---
+title: Basic CRUD Operations
+description: Create, read, update, and delete records with jotai-idb.
+---
+
+import { Code } from 'astro-live-code';
+
+This guide covers the fundamental CRUD (Create, Read, Update, Delete) operations in jotai-idb.
+
+## Setting Up
+
+First, define your data type and create a database instance:
+
+```typescript
+import { JotaiIDB } from "jotai-idb";
+
+type Todo = {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: Date;
+};
+
+const db = new JotaiIDB<Todo>({
+  dbName: "todo-app",
+  version: 1,
+  store: {
+    name: "todos",
+    keyPath: "id",
+  },
+});
+```
+
+## Reading Data
+
+### Get All Records
+
+Read all records from the store using the `items` atom:
+
+```typescript
+import { useAtomValue } from "jotai";
+
+function TodoList() {
+  const todos = useAtomValue(db.items);
+
+  return (
+    <ul>
+      {todos?.map((todo) => (
+        <li key={todo.id}>{todo.title}</li>
+      ))}
+    </ul>
+  );
+}
+```
+
+The `items` atom:
+- Returns `undefined` during initialization (triggers Suspense)
+- Returns an array of all records once loaded
+- Automatically updates after write operations
+
+### Get All Keys
+
+Get just the primary keys without loading full records:
+
+```typescript
+function TodoCount() {
+  const keys = useAtomValue(db.keys);
+  return <p>You have {keys?.length ?? 0} todos</p>;
+}
+```
+
+### Get All Entries
+
+Get `[id, value]` pairs for all records:
+
+```typescript
+function TodoEntries() {
+  const entries = useAtomValue(db.entries);
+
+  return entries?.map(([id, todo]) => (
+    <div key={id}>{todo.title}</div>
+  ));
+}
+```
+
+### Get Single Record
+
+Use `db.item(id)` to fetch a specific record:
+
+```typescript
+function TodoDetail({ todoId }: { todoId: string }) {
+  const todo = useAtomValue(db.item(todoId));
+
+  if (!todo) return <p>Todo not found</p>;
+  return <h2>{todo.title}</h2>;
+}
+```
+
+The `item()` atom:
+- Returns `undefined` if the record doesn't exist
+- Doesn't trigger Suspense (synchronous lookup from cache)
+- Uses atom family caching — same ID always returns same atom instance
+
+## Creating Records
+
+Create new records using the `setter` atom:
+
+```typescript
+import { useSetAtom } from "jotai";
+
+function CreateTodo() {
+  const [title, setTitle] = useState("");
+  const updateItem = useSetAtom(db.setter);
+
+  const handleCreate = async () => {
+    const newTodo: Todo = {
+      id: crypto.randomUUID(),
+      title,
+      completed: false,
+      createdAt: new Date(),
+    };
+
+    await updateItem({
+      type: "put",
+      value: newTodo,
+    });
+
+    setTitle("");
+  };
+
+  return (
+    <>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} />
+      <button onClick={handleCreate}>Create Todo</button>
+    </>
+  );
+}
+```
+
+Or use `db.set` directly:
+
+```typescript
+const setAtom = useSetAtom(db.set);
+
+await setAtom(todoId, newTodo);
+```
+
+## Updating Records
+
+Update records by putting a new version with the same ID:
+
+```typescript
+function ToggleTodo({ todoId }: { todoId: string }) {
+  const [todo, setTodo] = useAtom(db.item(todoId));
+
+  const handleToggle = async () => {
+    if (!todo) return;
+
+    const updated: Todo = {
+      ...todo,
+      completed: !todo.completed,
+    };
+
+    await setTodo(updated);
+  };
+
+  return (
+    <input
+      type="checkbox"
+      checked={todo?.completed ?? false}
+      onChange={handleToggle}
+    />
+  );
+}
+```
+
+## Deleting Records
+
+Delete records using the `setter` atom:
+
+```typescript
+function DeleteTodo({ todoId }: { todoId: string }) {
+  const updateItem = useSetAtom(db.setter);
+
+  const handleDelete = async () => {
+    await updateItem({
+      type: "delete",
+      id: todoId,
+    });
+  };
+
+  return <button onClick={handleDelete}>Delete</button>;
+}
+```
+
+Or use `db.delete` directly:
+
+```typescript
+const deleteAtom = useSetAtom(db.delete);
+
+await deleteAtom(todoId);
+```
+
+## Complete Example
+
+Here's a complete todo app combining all CRUD operations:
+
+```typescript
+import { useAtomValue, useSetAtom } from "jotai";
+import { useState } from "react";
+import { JotaiIDB } from "jotai-idb";
+
+type Todo = {
+  id: string;
+  title: string;
+  completed: boolean;
+  createdAt: Date;
+};
+
+const db = new JotaiIDB<Todo>({
+  dbName: "todo-app",
+  version: 1,
+  store: {
+    name: "todos",
+    keyPath: "id",
+  },
+});
+
+function TodoApp() {
+  const todos = useAtomValue(db.items);
+  const updateItem = useSetAtom(db.setter);
+  const [newTitle, setNewTitle] = useState("");
+
+  const handleCreate = async () => {
+    if (!newTitle.trim()) return;
+
+    await updateItem({
+      type: "put",
+      value: {
+        id: crypto.randomUUID(),
+        title: newTitle.trim(),
+        completed: false,
+        createdAt: new Date(),
+      },
+    });
+
+    setNewTitle("");
+  };
+
+  const handleToggle = async (todo: Todo) => {
+    await updateItem({
+      type: "put",
+      value: { ...todo, completed: !todo.completed },
+    });
+  };
+
+  const handleDelete = async (todoId: string) => {
+    await updateItem({ type: "delete", id: todoId });
+  };
+
+  return (
+    <div>
+      <div>
+        <input
+          value={newTitle}
+          onChange={(e) => setNewTitle(e.target.value)}
+          placeholder="New todo"
+        />
+        <button onClick={handleCreate}>Add</button>
+      </div>
+
+      <ul>
+        {todos?.map((todo) => (
+          <li key={todo.id}>
+            <input
+              type="checkbox"
+              checked={todo.completed}
+              onChange={() => handleToggle(todo)}
+            />
+            <span style={{ textDecoration: todo.completed ? "line-through" : "none" }}>
+              {todo.title}
+            </span>
+            <button onClick={() => handleDelete(todo.id)}>Delete</button>
+          </li>
+        ))}
+      </ul>
+    </div>
+  );
+}
+```
+
+## Cache Invalidation
+
+After write operations (put, delete, clear), affected read atoms automatically re-evaluate:
+
+- **`db.items`** updates to reflect changes
+- **`db.keys`** updates to reflect added/removed keys
+- **`db.entries`** updates to reflect changes
+- **`db.item(id)`** updates its cached value (no re-fetch needed)
+
+This happens automatically — no manual cache clearing required.
+
+## Error Handling
+
+Wrap write operations in try/catch:
+
+```typescript
+const updateItem = useSetAtom(db.setter);
+
+try {
+  await updateItem({
+    type: "put",
+    value: newTodo,
+  });
+} catch (error) {
+  console.error("Failed to save todo:", error);
+  setError("Could not save todo. Please try again.");
+}
+```
+
+## Performance Tips
+
+1. **Use `db.item(id)` for single records** — faster than filtering `db.items`
+2. **Use `db.keys` when you only need IDs** — avoid loading full records
+3. **Use range queries for large datasets** — more efficient than filtering in JavaScript
+4. **Batch writes carefully** — each write flushes to IndexedDB
+
+## Next Steps
+
+- **[Range Queries](/jotai-idb/guides/range-queries/)** - Filter and query data efficiently
+- **[Composite Indexes](/jotai-idb/guides/composite-indexes/)** - Query on multiple fields
+- **[API Reference](/jotai-idb/reference/jotaidb/)** - Complete API documentation

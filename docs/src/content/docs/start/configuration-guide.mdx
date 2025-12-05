@@ -1,0 +1,105 @@
+---
+title: 🛠️ Configuration Guide
+description: Basic configuration guide for jotai-idb.
+---
+
+import { Aside} from "@astrojs/starlight/components"
+
+Here's what you need to know to set up your initial configuration for jotai-idb. The config here is largely a wrapper around the browser's IndexedDB API.
+
+You can learn about the [IndexedDB API on MDN](https://developer.mozilla.org/en-US/docs/Web/API/IndexedDB_API).
+
+## Database Name
+
+Choose a name that reflects your application. This will be stored in your clients' browser application data. It should properly identify your app:
+
+```typescript
+{
+  dbName: "my-app",  // ✅ Good
+  dbName: "app-db",  // ✅ Also good
+  dbName: "x",       // ❌ Avoid - too vague
+}
+```
+
+## Version
+
+Increment the version when you change the schema. Use the `onupgradeneeded` event to migrate data:
+
+```typescript
+// Version 1: Initial setup
+{
+  dbName: "my-app",
+  version: 1,
+  store: {
+    name: "notes",
+    keyPath: "id",
+    indexes: [{ name: "byDate", keyPath: "createdAt" }],
+  },
+}
+
+// Version 2: Add new index
+{
+  dbName: "my-app",
+  version: 2,  // Increment this
+  store: {
+    name: "notes",
+    keyPath: "id",
+    indexes: [
+      { name: "byDate", keyPath: "createdAt" },
+      { name: "byTag", keyPath: "tags", multiEntry: true },  // New
+    ],
+  },
+}
+```
+
+## Store Definition
+
+The store definition configures your object store:
+
+```typescript
+store: {
+  // Name of the object store
+  name: "notes",
+
+  // Primary key field (must match a property on your record type). Very often this will be "id".
+  keyPath: "id",
+
+  // Optional: Create indexes for efficient queries
+  indexes: [
+    {
+      name: "byDate",
+      keyPath: "createdAt",
+      unique: false,
+    },
+    {
+      name: "byTag",
+      keyPath: "tags",
+      multiEntry: true,  // For array fields
+    },
+  ],
+}
+```
+
+## Initial Data
+
+Populate the store with default data on first creation:
+
+```typescript
+{
+  dbName: "my-app",
+  version: 1,
+  store: { name: "notes", keyPath: "id" },
+  initialData: {
+    "note-1": {
+      id: "note-1",
+      title: "Welcome",
+      content: "This is your first note",
+      createdAt: new Date(),
+    },
+  },
+}
+```
+
+<Aside type="tip" title="Initial data gets added once">
+  Initial data is only added if items with the specified keys do not already exist. After that, it's not re-added on subsequent loads.
+</Aside>

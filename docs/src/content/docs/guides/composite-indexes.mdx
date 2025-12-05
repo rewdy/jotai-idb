@@ -1,0 +1,385 @@
+---
+title: Composite Indexes
+description: Query on multiple fields with composite indexes for efficient filtering.
+---
+
+Composite indexes allow you to create indexes on multiple fields, enabling efficient queries across complex data relationships. This is particularly useful for hierarchical data, time-series filtering, and multi-criteria searches.
+
+## What Are Composite Indexes?
+
+A composite index uses multiple field values to create a compound key. This enables queries like "all items in folder X created after date Y" without fetching all data into JavaScript.
+
+## Basic Composite Index
+
+Define a composite index by passing an array to `keyPath`:
+
+```typescript
+type FolderItem = {
+  id: string;
+  folderId: string;
+  createdAt: Date;
+  name: string;
+};
+
+const db = new JotaiIDB<FolderItem>({
+  dbName: "files",
+  version: 1,
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byFolderAndDate",
+        keyPath: ["folderId", "createdAt"],
+      },
+    ],
+  },
+});
+
+// Query all items in a folder created after a date
+function ItemsInFolderAfterDate({ 
+  folderId, 
+  date 
+}: { 
+  folderId: string; 
+  date: Date; 
+}) {
+  const items = useAtomValue(
+    db.range({
+      index: "byFolderAndDate",
+      lower: [folderId, date],
+    })
+  );
+
+  return items?.map(([id, item]) => <div key={id}>{item.name}</div>);
+}
+```
+
+## Query Bounds with Composite Keys
+
+When querying a composite index, both the lower and upper bounds must be arrays:
+
+```typescript
+// Get items in folder "abc" created between Jan 1 and Dec 31
+const items = useAtomValue(
+  db.range({
+    index: "byFolderAndDate",
+    lower: ["abc", new Date("2024-01-01")],
+    upper: ["abc", new Date("2024-12-31")],
+  })
+);
+```
+
+Partial bounds work too — you can specify just the first element:
+
+```typescript
+// Get ALL items in folder "abc" (any creation date)
+const items = useAtomValue(
+  db.range({
+    index: "byFolderAndDate",
+    lower: ["abc"],
+    upper: ["abc", undefined],  // or just use upper with next folder ID
+  })
+);
+```
+
+## Three-Field Composite Index
+
+Use three or more fields for more complex queries:
+
+```typescript
+type Event = {
+  id: string;
+  type: "user" | "system";
+  userId: string;
+  timestamp: Date;
+  action: string;
+};
+
+const db = new JotaiIDB<Event>({
+  dbName: "events",
+  version: 1,
+  store: {
+    name: "events",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byTypeUserTime",
+        keyPath: ["type", "userId", "timestamp"],
+      },
+    ],
+  },
+});
+
+// Get all user events for a specific user in the last 24 hours
+function UserEventsLast24Hours({ userId }: { userId: string }) {
+  const now = new Date();
+  const oneDayAgo = new Date(now.getTime() - 24 * 60 * 60 * 1000);
+
+  const events = useAtomValue(
+    db.range({
+      index: "byTypeUserTime",
+      lower: ["user", userId, oneDayAgo],
+      upper: ["user", userId, now],
+      reverse: true,
+    })
+  );
+
+  return events?.map(([id, event]) => (
+    <div key={id}>{event.action} at {event.timestamp.toISOString()}</div>
+  ));
+}
+```
+
+## Type Discriminator with Composite Indexes
+
+Combine a type discriminator with other fields for efficient multi-type queries:
+
+```typescript
+type Note = {
+  id: string;
+  type: "note";
+  userId: string;
+  createdAt: Date;
+  title: string;
+};
+
+type Todo = {
+  id: string;
+  type: "todo";
+  userId: string;
+  completed: boolean;
+  dueDate: Date;
+};
+
+type Item = Note | Todo;
+
+const db = new JotaiIDB<Item>({
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byTypeAndUser",
+        keyPath: ["type", "userId"],
+      },
+      {
+        name: "byTypeUserDate",
+        keyPath: ["type", "userId", "createdAt"],
+      },
+    ],
+  },
+});
+
+function UserNotes({ userId }: { userId: string }) {
+  const notes = useAtomValue(
+    db.range({
+      index: "byTypeAndUser",
+      lower: ["note", userId],
+      upper: ["note", userId],
+    })
+  );
+
+  return notes
+    ?.filter((item): item is [string, Note] => item[1].type === "note")
+    .map(([id, note]) => <div key={id}>{note.title}</div>);
+}
+
+function UserNotesAfterDate({ userId, date }: { userId: string; date: Date }) {
+  const notes = useAtomValue(
+    db.range({
+      index: "byTypeUserDate",
+      lower: ["note", userId, date],
+    })
+  );
+
+  return notes
+    ?.filter((item): item is [string, Note] => item[1].type === "note")
+    .map(([id, note]) => <div key={id}>{note.title}</div>);
+}
+```
+
+## Real-World Example: File System
+
+A practical example of composite indexes for a file organization system:
+
+```typescript
+type Folder = {
+  id: string;
+  type: "folder";
+  parentId: string;
+  name: string;
+  createdAt: Date;
+};
+
+type File = {
+  id: string;
+  type: "file";
+  parentId: string;
+  name: string;
+  size: number;
+  createdAt: Date;
+};
+
+type FileSystemItem = Folder | File;
+
+const db = new JotaiIDB<FileSystemItem>({
+  dbName: "file-explorer",
+  version: 1,
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [
+      // Index files and folders by parent
+      {
+        name: "byTypeAndParent",
+        keyPath: ["type", "parentId"],
+      },
+      // Index files by parent and creation date
+      {
+        name: "filesByParentDate",
+        keyPath: ["type", "parentId", "createdAt"],
+      },
+      // Index by parent and name for sorting
+      {
+        name: "byParentName",
+        keyPath: ["parentId", "name"],
+      },
+    ],
+  },
+});
+
+function FolderContents({ parentId }: { parentId: string }) {
+  // Get all items in folder (both files and folders)
+  const items = useAtomValue(
+    db.range({
+      index: "byParentName",
+      lower: [parentId, ""],
+      upper: [parentId, "\uffff"],
+    })
+  );
+
+  const folders = items
+    ?.filter((item): item is [string, Folder] => item[1].type === "folder")
+    .sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+  const files = items
+    ?.filter((item): item is [string, File] => item[1].type === "file")
+    .sort((a, b) => a[1].name.localeCompare(b[1].name));
+
+  return (
+    <>
+      {folders?.map(([id, folder]) => <div key={id}>{folder.name}/</div>)}
+      {files?.map(([id, file]) => <div key={id}>{file.name}</div>)}
+    </>
+  );
+}
+
+function RecentFilesInFolder({ parentId }: { parentId: string }) {
+  const weekAgo = new Date(Date.now() - 7 * 24 * 60 * 60 * 1000);
+
+  const files = useAtomValue(
+    db.range({
+      index: "filesByParentDate",
+      lower: ["file", parentId, weekAgo],
+      reverse: true,
+    })
+  );
+
+  return files
+    ?.filter((item): item is [string, File] => item[1].type === "file")
+    .map(([id, file]) => (
+      <div key={id}>
+        {file.name} ({file.size} bytes)
+      </div>
+    ));
+}
+```
+
+## MultiEntry Indexes
+
+For fields containing arrays, use `multiEntry: true` to index individual array elements:
+
+```typescript
+type Article = {
+  id: string;
+  title: string;
+  tags: string[];
+};
+
+const db = new JotaiIDB<Article>({
+  dbName: "blog",
+  version: 1,
+  store: {
+    name: "articles",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byTag",
+        keyPath: "tags",
+        multiEntry: true,
+      },
+    ],
+  },
+});
+
+function ArticlesByTag({ tag }: { tag: string }) {
+  const articles = useAtomValue(
+    db.range({
+      index: "byTag",
+      lower: tag,
+      upper: tag,
+    })
+  );
+
+  return articles?.map(([id, article]) => <div key={id}>{article.title}</div>);
+}
+```
+
+## Performance Tips
+
+1. **Design indexes based on your queries** — only create indexes you actually use
+2. **Put the most-filtered field first** — in a composite index, put the field you filter on most at the start
+3. **Put range fields last** — if you're doing a range on one field and equality on others, put the range field last
+4. **Use open bounds carefully** — they add minimal overhead but can help with edge cases
+
+## Versioning and Migrations
+
+When you add or modify indexes, increment your database version:
+
+```typescript
+// Version 1
+const db1 = new JotaiIDB({
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [{ name: "byType", keyPath: "type" }],
+  },
+});
+
+// Version 2: Add composite index
+const db2 = new JotaiIDB({
+  dbName: "app",
+  version: 2,  // Increment version
+  store: {
+    name: "items",
+    keyPath: "id",
+    indexes: [
+      { name: "byType", keyPath: "type" },
+      { name: "byTypeAndDate", keyPath: ["type", "createdAt"] },  // New
+    ],
+  },
+});
+```
+
+IndexedDB automatically updates indexes during the `onupgradeneeded` event.
+
+## Next Steps
+
+- **[Range Queries](/jotai-idb/guides/range-queries/)** - Query fundamentals
+- **[API Reference](/jotai-idb/reference/types/#indexdefinition)** - IndexDefinition type reference
+- **[Basic CRUD](/jotai-idb/guides/basic-crud/)** - Read/write operations

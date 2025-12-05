@@ -1,0 +1,432 @@
+---
+title: Advanced Patterns
+description: Learn advanced usage patterns and techniques with jotai-idb.
+---
+
+This guide covers advanced patterns and techniques for building complex applications with jotai-idb.
+
+## Custom Atom Families
+
+Beyond `db.item(id)` and `db.range(query)`, you can create custom atom families for derived data:
+
+```typescript
+import { atom } from "jotai";
+import { atomFamily } from "jotai/utils";
+import { JotaiIDB, UNICODE_MAX } from "jotai-idb";
+
+type Task = {
+  id: string;
+  title: string;
+  projectId: string;
+  completed: boolean;
+  dueDate: Date;
+};
+
+const db = new JotaiIDB<Task>({
+  dbName: "tasks",
+  version: 1,
+  store: {
+    name: "tasks",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byProject",
+        keyPath: ["projectId"],
+      },
+    ],
+  },
+});
+
+// Custom atom family: get incomplete tasks for a project
+export const incompleteTasksAtom = atomFamily((projectId: string) =>
+  atom(async (get) => {
+    const tasks = await get(
+      db.range({
+        index: "byProject",
+        lower: [projectId],
+        upper: [projectId, UNICODE_MAX],
+      })
+    );
+
+    return tasks
+      ?.filter((item): item is [string, Task] => !item[1].completed)
+      .map(([, task]) => task) ?? [];
+  })
+);
+
+// Use in components
+function ProjectTasks({ projectId }: { projectId: string }) {
+  const tasks = useAtomValue(incompleteTasksAtom(projectId));
+  return <div>{tasks.length} incomplete tasks</div>;
+}
+```
+
+## Derived Computed Atoms
+
+Create computed atoms that derive from multiple sources:
+
+```typescript
+// Atom for task statistics
+export const projectStatsAtom = atomFamily((projectId: string) =>
+  atom(async (get) => {
+    const tasks = await get(incompleteTasksAtom(projectId));
+
+    const overdue = tasks.filter((t) => t.dueDate < new Date());
+    const dueSoon = tasks.filter(
+      (t) =>
+        t.dueDate >= new Date() && t.dueDate < new Date(Date.now() + 24 * 60 * 60 * 1000)
+    );
+
+    return {
+      total: tasks.length,
+      overdue: overdue.length,
+      dueSoon: dueSoon.length,
+    };
+  })
+);
+
+function ProjectStats({ projectId }: { projectId: string }) {
+  const stats = useAtomValue(projectStatsAtom(projectId));
+  return (
+    <div>
+      Total: {stats.total} | Overdue: {stats.overdue} | Due Soon: {stats.dueSoon}
+    </div>
+  );
+}
+```
+
+## Write-Through with Optimistic Updates
+
+The library supports optimistic updates by returning the result synchronously:
+
+```typescript
+import { useSetAtom } from "jotai";
+
+function EditTask({ task }: { task: Task }) {
+  const dispatch = useSetAtom(db.setter);
+  const [title, setTitle] = useState(task.title);
+
+  const handleSave = async () => {
+    // UI updates immediately
+    const updated = { ...task, title };
+
+    // Persist to IndexedDB in background
+    try {
+      await dispatch({
+        type: "put",
+        value: updated,
+      });
+    } catch (error) {
+      // Handle error (consider reverting UI)
+      console.error("Failed to save:", error);
+    }
+  };
+
+  return (
+    <>
+      <input value={title} onChange={(e) => setTitle(e.target.value)} />
+      <button onClick={handleSave}>Save</button>
+    </>
+  );
+}
+```
+
+## Batch Operations
+
+For multiple writes, consider batching to reduce IndexedDB round-trips:
+
+```typescript
+async function moveTasksToProject(
+  taskIds: string[],
+  targetProjectId: string
+) {
+  const dispatch = useSetAtom(db.setter);
+
+  for (const taskId of taskIds) {
+    const task = /* get task */;
+    await dispatch({
+      type: "put",
+      value: { ...task, projectId: targetProjectId },
+    });
+  }
+}
+```
+
+Or create a custom batch setter:
+
+```typescript
+export const batchSetterAtom = atom(
+  null,
+  async (_get, set, actions: SetterAction<Task>[]) => {
+    for (const action of actions) {
+      await set(db.setter, action);
+    }
+  }
+);
+
+function MoveMultipleTasks() {
+  const setBatch = useSetAtom(batchSetterAtom);
+
+  const handleMove = async (taskIds: string[], projectId: string) => {
+    const actions: SetterAction<Task>[] = taskIds.map((id) => ({
+      type: "put",
+      value: { /* updated task */ } as Task,
+    }));
+
+    await setBatch(actions);
+  };
+}
+```
+
+## Search and Filter Patterns
+
+Combine range queries with in-memory filtering:
+
+```typescript
+type Document = {
+  id: string;
+  title: string;
+  content: string;
+  tags: string[];
+  createdAt: Date;
+};
+
+// Get all documents, then filter
+export const searchDocumentsAtom = atom(
+  (get) => {
+    const docs = get(db.items);
+    return docs;
+  },
+  null,
+  (get) => ({
+    byContent: (query: string) => {
+      const docs = get(db.items) ?? [];
+      return docs.filter(
+        (doc) =>
+          doc.title.includes(query) || doc.content.includes(query)
+      );
+    },
+    byTag: (tag: string) => {
+      const docs = get(db.items) ?? [];
+      return docs.filter((doc) => doc.tags.includes(tag));
+    },
+    recent: (days: number) => {
+      const docs = get(db.items) ?? [];
+      const cutoff = new Date(Date.now() - days * 24 * 60 * 60 * 1000);
+      return docs.filter((doc) => doc.createdAt > cutoff);
+    },
+  })
+);
+```
+
+## Change Tracking and Sync
+
+Create atoms that track database changes:
+
+```typescript
+export const lastModifiedAtom = atom(new Date());
+
+export const setSyncedAtom = atom(
+  null,
+  async (_get, set, value: Task) => {
+    // Update database
+    await set(db.set, value.id, value);
+
+    // Track modification time
+    set(lastModifiedAtom, new Date());
+  }
+);
+
+function SyncIndicator() {
+  const lastModified = useAtomValue(lastModifiedAtom);
+  const now = new Date();
+  const isSynced = now.getTime() - lastModified.getTime() > 1000;
+
+  return (
+    <div>
+      Status: {isSynced ? "✓ Synced" : "◐ Syncing..."}
+    </div>
+  );
+}
+```
+
+## Time-Series Data
+
+Efficiently query time-series data with date-based indexes:
+
+```typescript
+type Metric = {
+  id: string;
+  name: string;
+  timestamp: Date;
+  value: number;
+};
+
+const db = new JotaiIDB<Metric>({
+  dbName: "metrics",
+  version: 1,
+  store: {
+    name: "metrics",
+    keyPath: "id",
+    indexes: [
+      {
+        name: "byNameTime",
+        keyPath: ["name", "timestamp"],
+      },
+    ],
+  },
+});
+
+function MetricChart({ metricName }: { metricName: string }) {
+  const [range, setRange] = useState({
+    start: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000),
+    end: new Date(),
+  });
+
+  const metrics = useAtomValue(
+    db.range({
+      index: "byNameTime",
+      lower: [metricName, range.start],
+      upper: [metricName, range.end],
+    })
+  );
+
+  const data = metrics?.map(([, metric]) => ({
+    time: metric.timestamp,
+    value: metric.value,
+  })) ?? [];
+
+  return <Chart data={data} />;
+}
+```
+
+## Database Migrations
+
+Handle schema migrations between versions:
+
+```typescript
+// Version 1: Initial schema
+const dbV1 = new JotaiIDB({
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "items",
+    keyPath: "id",
+  },
+});
+
+// Version 2: Add status field to items
+// IndexedDB automatically handles the upgrade, but you might need to
+// update existing records. Do this after initialization:
+
+async function migrateToV2() {
+  // If you need to add default values to existing records,
+  // you can do it manually after the DB opens
+  const items = await getAll(db.items);
+  
+  items?.forEach(async (item) => {
+    if (!("status" in item)) {
+      await dispatch({
+        type: "put",
+        value: { ...item, status: "pending" },
+      });
+    }
+  });
+}
+```
+
+## Multi-Store Applications
+
+Store different record types in separate stores:
+
+```typescript
+type User = {
+  id: string;
+  name: string;
+  email: string;
+};
+
+type Post = {
+  id: string;
+  userId: string;
+  title: string;
+  content: string;
+};
+
+// Note: Currently jotai-idb supports one store per instance.
+// For multiple stores, create separate instances:
+
+const userDb = new JotaiIDB<User>({
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "users",
+    keyPath: "id",
+  },
+});
+
+const postDb = new JotaiIDB<Post>({
+  dbName: "app",
+  version: 1,
+  store: {
+    name: "posts",
+    keyPath: "id",
+  },
+});
+
+// Use both in components
+function UserWithPosts({ userId }: { userId: string }) {
+  const user = useAtomValue(userDb.item(userId));
+
+  const userPosts = useAtomValue(
+    postDb.range({
+      index: "byUserId",
+      lower: [userId],
+      upper: [userId],
+    })
+  );
+
+  return (
+    <div>
+      <h1>{user?.name}</h1>
+      <div>Posts: {userPosts?.length}</div>
+    </div>
+  );
+}
+```
+
+## Error Boundaries
+
+Wrap async operations in error boundaries:
+
+```typescript
+function SafeComponent({ id }: { id: string }) {
+  const item = useAtomValue(db.item(id));
+
+  if (!item) {
+    return <div>Item not found</div>;
+  }
+
+  return <div>{item.name}</div>;
+}
+
+function SafeList() {
+  const items = useAtomValue(db.items);
+
+  if (!items) {
+    return <div>Loading...</div>;
+  }
+
+  if (items.length === 0) {
+    return <div>No items</div>;
+  }
+
+  return items.map((item) => <SafeComponent key={item.id} id={item.id} />);
+}
+```
+
+## Next Steps
+
+- **[API Reference](/jotai-idb/reference/jotaidb/)** - Complete API documentation
+- **[Range Queries](/jotai-idb/guides/range-queries/)** - Query patterns
+- **[Basic CRUD](/jotai-idb/guides/basic-crud/)** - Fundamental operations
