@@ -37,7 +37,7 @@ jobs:
           path: ./docs/dist
 
   deploy-docs:
-    needs: build-docs
+    needs: [test, build-docs]
     runs-on: ubuntu-latest
 
     environment:

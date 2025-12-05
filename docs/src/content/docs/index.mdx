@@ -10,9 +10,10 @@ hero:
     - text: Get Started
       link: /jotai-idb/start/getting-started/
       icon: right-arrow
-    - text: View Examples
-      link: /jotai-idb/guides/basic-crud/
-      icon: open-book
+    - text: View on GitHub
+      link: https://github.com/rewdy/jotai-idb
+      icon: github
+      variant: minimal
 ---
 
 import { Card, CardGrid, LinkButton } from '@astrojs/starlight/components';
@@ -21,24 +22,15 @@ import { BASE_URL } from '../../config.ts';
 ## Why jotai-idb?
 
 <CardGrid stagger>
-	<Card title="Atom-based API" icon="puzzle">
-		Leverage the full power of indexed db using standard [Jotai](https://jotai.org/) atom-based API: `useAtom`, `useAtomValue`, and `useSetAtom`. 
-	</Card>
-	<Card title="Fully Typed" icon="seti:typescript">
-		Complete TypeScript inference throughout the entire API. Your record type flows through every operation for compile-time safety.
-	</Card>
-	<Card title="Efficient Queries" icon="star">
-		Leverage IndexedDB's powerful indexes for range queries, composite keys, and selective data retrieval.
-	</Card>
-	<Card title="Minimal Dependencies" icon="document">
-		Only requires Jotai (which requires React). No other external dependencies.
-	</Card>
-	<Card title="Cache Invalidation" icon="rocket">
-		Automatic cache management after write operations. No manual cache clearing needed.
-	</Card>
-	<Card title="Lazy Initialization" icon="moon">
-		Database opens on first use. Zero overhead until your app needs persisted state.
-	</Card>
+  <Card title="Atom-based API" icon="puzzle">
+    Leverage the full power of indexed db using standard [Jotai](https://jotai.org/) atom-based API: `useAtom`, `useAtomValue`, and `useSetAtom`. 
+  </Card>
+  <Card title="Fully Typed" icon="seti:typescript">
+    Complete TypeScript inference throughout the entire API. Your record type flows through every operation for compile-time safety.
+  </Card>
+  <Card title="Efficient Queries" icon="star">
+    Leverage IndexedDB's powerful indexes for range queries, composite keys, and selective data retrieval.
+  </Card>
 </CardGrid>
 
 ## Quick Example
@@ -66,15 +58,15 @@ export default function App() {
   const notes = useAtomValue(db.items);
   const dispatch = useSetAtom(db.setter);
 
-	const createNote = () => {
-		dispatch({
-			type: "put",
-			record: {
-				id: crypto.randomUUID(),
-				title: "New Note",
-			},
-		});
-	};
+  const createNote = () => {
+    dispatch({
+      type: "put",
+      record: {
+        id: crypto.randomUUID(),
+        title: "New Note",
+      },
+    });
+  };
 
   return (
     <div>
@@ -89,18 +81,18 @@ export default function App() {
 ## Learn More
 
 <CardGrid>
-	<Card title="Getting Started" icon="rocket">
-		<p>Install jotai-idb and set up your first database with step-by-step instructions.</p>
-		<p><LinkButton href={`${BASE_URL}start/getting-started/`}>Getting started &rarr;</LinkButton></p>
-	</Card>
-	<Card title="Examples" icon="list-format">
-		<p>Explore practical examples covering CRUD operations, range queries, and real-world patterns.</p>
-		<p><LinkButton href={`${BASE_URL}guides/basic-crud/`}>Basic CRUD &rarr;</LinkButton></p>
-	</Card>
-	<Card title="API Reference" icon="setting">
-		<p>Complete reference for all exported classes, types, and methods.</p>
-		<p><LinkButton href={`${BASE_URL}reference/exports`}>API reference &rarr;</LinkButton></p>
-	</Card>
+  <Card title="Getting Started" icon="rocket">
+    <p>Install jotai-idb and set up your first database with step-by-step instructions.</p>
+    <p><LinkButton href={`${BASE_URL}start/getting-started/`}>Getting started &rarr;</LinkButton></p>
+  </Card>
+  <Card title="Examples" icon="list-format">
+    <p>Explore practical examples covering CRUD operations, range queries, and real-world patterns.</p>
+    <p><LinkButton href={`${BASE_URL}guides/basic-crud/`}>Basic CRUD &rarr;</LinkButton></p>
+  </Card>
+  <Card title="API Reference" icon="setting">
+    <p>Complete reference for all exported classes, types, and methods.</p>
+    <p><LinkButton href={`${BASE_URL}reference/exports`}>API reference &rarr;</LinkButton></p>
+  </Card>
 </CardGrid>
 
 &nbsp;
